@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2043
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{DA7A21FA-8162-4350-AD77-A8D1B671F3ED}") = "lol_pros_predictor", "lol_pros_predictor\lol_pros_predictor.rxproj", "{1E9C1389-E52B-415B-B91C-2FB7635867BA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1E9C1389-E52B-415B-B91C-2FB7635867BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E9C1389-E52B-415B-B91C-2FB7635867BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E9C1389-E52B-415B-B91C-2FB7635867BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E9C1389-E52B-415B-B91C-2FB7635867BA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7411BE0F-EECE-4C98-A3E6-E2EF88F54E02}
+	EndGlobalSection
+EndGlobal
