@@ -1,5 +1,6 @@
 library(httr)
 library(dplyr)
+library(tidyr)
 library(jsonlite)
 suppressMessages(library(dplyr))
 #library(future)
@@ -149,40 +150,95 @@ get_league_timeline_data_list <- function(league_matchid_df) {
 get_accum_matches_teams <- function(league_matchlist, league_matchid_df) {
   league_matches_teams_accum <- data.frame(NULL)
   for (i in 1:length(league_matchlist)) {
+    # Convert win column (Win/Fail) to logical (TRUE/FALSE)
+    league_matchlist[[i]]$teams["win"] <- as.logical(eval(league_matchlist[[i]]$teams["win"]) == "Win")
     # Add team names column
     league_matchlist[[i]]$teams["teamName"] <- unname(unlist(c(league_matchid_df[i, c("Blue.Team", "Red.Team")])))
     # Add game number column
     league_matchlist[[i]]$teams["gameNumber"] <- c(i, i)
-    # TODO: Alter bans DFs so that we can get associated champion name with the key
-    league_matchlist[[i]]$teams$bans <- lapply(league_matchlist[[i]]$teams$bans, function(item) {
-      # Add 6 to 4th and 5th rows of pickTurn in order to get the correct ban order.
-      item[4:5,] <- item[4:5,] %>%
-        mutate(pickTurn = as.numeric(pickTurn) + 6)
-      left_join(item, champions_df_simple)
-    })
+    # Add tiebreaker and playoff column
+    league_matchlist[[i]]$teams["isTiebreaker"] <- unname(unlist(c(league_matchid_df[i, c("Tiebreaker", "Tiebreaker")])))
+    league_matchlist[[i]]$teams["isPlayoff"] <- unname(unlist(c(league_matchid_df[i, c("Playoff", "Playoff")])))
+    # Add game duration 
+    league_matchlist[[i]]$teams["duration"] <- rep(league_matchlist[[i]]$gameDuration, 2)
+    
     # Concatenate rows from current match onto the accumulation DF
-    league_matches_teams_accum <- league_matches_teams_accum %>% bind_rows(league_matchlist[[i]]$teams)
+    league_matches_teams_accum <- league_matches_teams_accum %>% bind_rows(league_matchlist[[i]]$teams %>% select(-bans))
   }
   #Change all teamId = 100/200 to Blue/Red
+  # and remove some irrelevant columns
   league_matches_teams_accum <- league_matches_teams_accum %>%
     mutate(teamId = replace(teamId, grepl('100', teamId), 'Blue')) %>%
-    mutate(teamId = replace(teamId, grepl('200', teamId), 'Red'))
+    mutate(teamId = replace(teamId, grepl('200', teamId), 'Red')) %>%
+    select(-vilemawKills, -dominionVictoryScore)
   return(league_matches_teams_accum)
 }
 
-get_accum_matches_participants <- function(league_matchlist, league_matchid_df) {
+get_accum_matches_bans <- function(league_matchlist, league_matchid_df) {
+  league_matches_bans_accum <- data.frame(NULL)
+  for (i in 1:length(league_matchlist)) {
+    # Alter bans DFs so that we can get associated champion name with the key
+    ret_bans <- lapply(league_matchlist[[i]]$teams$bans, function(item) {
+      # Add 6 to 4th and 5th rows of pickTurn in order to get the correct ban order.
+      item[4:5,] <- item[4:5,] %>%
+        mutate(pickTurn = as.numeric(pickTurn) + 6)
+      item <- left_join(item, champions_df_simple)
+      return (item)
+    })
+    my_bans <- as.data.frame(ret_bans)
+    my_bans2 <- my_bans %>% select(championId.1:name.1)
+    my_bans2 <- my_bans2 %>% rename(championId = championId.1, pickTurn = pickTurn.1, name = name.1)
+    my_bans <- my_bans %>% select(championId:name)
+    ret_bans <- my_bans %>% bind_rows(my_bans2) %>% arrange(pickTurn)
+    ret_bans["gameNumber"] <- rep(i, 10)
+    # Add tiebreaker and playoff column
+    ret_bans["isTiebreaker"] <- unname(unlist(c(league_matchid_df[i, rep("Tiebreaker", 10)])))
+    ret_bans["isPlayoff"] <- unname(unlist(c(league_matchid_df[i, rep("Playoff", 10)])))
+
+    league_matches_bans_accum <- league_matches_bans_accum %>% bind_rows(ret_bans)
+  }
+  return (league_matches_bans_accum)
+}
+
+
+# Concatenates the "participants" DFs of each match together
+# combine_teammate_stats determines whether we want to combine the stats of the teammates
+# into total numbers 
+get_accum_matches_participants <- function(league_matchlist, league_matchid_df, combine_teammate_stats = FALSE) {
   league_matches_participants_accum <- data.frame(NULL)
   for (i in 1:length(league_matchlist)) {
     flattened_df <- get_flattened_match_participants_df(league_matchlist[[i]]$participants, league_matchlist[[i]]$participantIdentities)
     flattened_df["gameNumber"] <- rep(i, 10)
+    flattened_df["isTiebreaker"] <- rep(league_matchid_df[i,]$Tiebreaker, 10)
+    flattened_df["isPlayoff"] <- rep(league_matchid_df[i,]$Playoff, 10)
+    tmp_fdf1 <- flattened_df %>% filter(teamId == "Blue")
+    tmp_fdf1["teamName"] <- unname(unlist(c(league_matchid_df[i, rep("Blue.Team", 5)])))
+    tmp_fdf2 <- flattened_df %>% filter(teamId == "Red")
+    tmp_fdf2["teamName"] <- unname(unlist(c(league_matchid_df[i, rep("Red.Team", 5)])))
 
+    # TODO: figure out why NAs can't be replaced
+    #tmp_fdf1 <- tmp_fdf1 %>%
+      ##mutate_all(funs(replace(., is.na(.), 0)))
+      #mutate_at(vars("creepsPerMinDeltas.10-20":"damageTakenDiffPerMinDeltas.0-10", "creepsPerMinDeltas.30-end":"damageTakenDiffPerMinDeltas.20-30"), funs(replace(., is.na(.), 0)))
+    #tmp_fdf2 <- tmp_fdf2 %>%
+      ##mutate_all(funs(replace(., is.na(.), 0)))
+      #mutate_at(vars("creepsPerMinDeltas.10-20":"damageTakenDiffPerMinDeltas.0-10", "creepsPerMinDeltas.30-end":"damageTakenDiffPerMinDeltas.20-30"), funs(replace(., is.na(.), 0)))
+
+    # Combine teammates stats together
+    if (combine_teammate_stats == TRUE) {
+      tmp_fdf1 <- get_match_combined_participant_stats_df(tmp_fdf1)
+      tmp_fdf2 <- get_match_combined_participant_stats_df(tmp_fdf2)
+    }
+    flattened_df <- bind_rows(tmp_fdf1, tmp_fdf2)
     league_matches_participants_accum <- league_matches_participants_accum %>% bind_rows(flattened_df)
   }
+
+  # TODO: Remove some irrelevant columns
   return(league_matches_participants_accum)
 }
 
 get_flattened_match_participants_df <- function(match_participants_df, match_participantids_df) {
-  # uses jsonline flatten() function
+  # uses jsonlite flatten() function
   ret_df <- match_participants_df %>%
     select(-stats, - timeline) %>%
     bind_cols(match_participantids_df$player) %>%
@@ -190,12 +246,27 @@ get_flattened_match_participants_df <- function(match_participants_df, match_par
     inner_join(match_participants_df$stats) %>%
     inner_join(match_participants_df$timeline %>%
                  flatten())
-  # Change teamId = 100/200 to Blue/Red
+  # Change teamId = 100/200 to Blue/Red, replace NA's in the Deltas with 0s
   ret_df <- ret_df %>%
     mutate(teamId = replace(teamId, grepl('100', teamId), 'Blue')) %>%
     mutate(teamId = replace(teamId, grepl('200', teamId), 'Red'))
 
   return(ret_df)
+}
+
+get_match_combined_participant_stats_df <- function(match_team_df) {
+  #match_team_df <- match_team_df %>%
+    #group_by(teamName, teamId, win, gameNumber, isTiebreaker, isPlayoff) %>%
+    #summarize_at(vars(kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:wardsKilled, "creepsPerMinDeltas.10-20":"damageTakenDiffPerMinDeltas.0-10", "creepsPerMinDeltas.30-end":"damageTakenDiffPerMinDeltas.20-30"),
+    #sum)
+
+  match_team_df <- match_team_df %>%
+    mutate_at(vars(contains("Deltas")), funs(replace(., is.na(.), 0)))
+
+  match_team_df <- match_team_df %>%
+    group_by(teamName, teamId, win, gameNumber, isTiebreaker, isPlayoff) %>%
+    summarize_at(vars(kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:goldSpent, totalMinionsKilled:wardsKilled, 'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20', 'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10', 'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), sum)
+  return(match_team_df)
 }
 
 
@@ -236,7 +307,7 @@ champions_df_simple <- champions_df %>%
   distinct() %>%
   rename(championId = key) %>%
   mutate(championId = as.numeric(championId))
-
+remove(champions_df)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # NA LCS data (Spring Split 2018)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -254,21 +325,78 @@ nalcs_single_match <- get_acs_match_by_matchid(nalcs_matchid_df$Region.ID[[1]], 
 
 nalcs_single_match$teams["teamName"] <- unname(unlist(c(nalcs_matchid_df[1, c("Blue.Team", "Red.Team")])))
 
-nalcs_single_match$teams$bans <- lapply(nalcs_single_match$teams$bans, function(item) {
-  item[4:5,] <- item[4:5,] %>%
-    mutate(pickTurn = as.numeric(pickTurn) + 6)
-  left_join(item, champions_df_simple)
-})
 nalcs_matches_teams_accum <- get_accum_matches_teams(nalcs_matches, nalcs_matchid_df)
+nalcs_matches_bans_accum <- get_accum_matches_bans(nalcs_matches, nalcs_matchid_df)
 nalcs_matches_participants_accum <- get_accum_matches_participants(nalcs_matches, nalcs_matchid_df)
-#na_win_blue <- nalcs_matches_teams_accum %>% filter(teamId == "Blue" & win == "Win")
-#na_win_red <- nalcs_matches_teams_accum %>% filter(teamId == "Red" & win == "Win")
-#na_win_firstblood <- nalcs_matches_teams_accum %>% filter(firstBlood == "TRUE" & win == "Win")
-#na_win_firsttower <- nalcs_matches_teams_accum %>% filter(firstTower == "TRUE" & win == "Win")
-#na_win_firstinhib <- nalcs_matches_teams_accum %>% filter(firstInhibitor == "TRUE" & win == "Win")
-#na_win_firstbaron <- nalcs_matches_teams_accum %>% filter(firstBaron == "TRUE" & win == "Win")
-#na_win_firstdragon <- nalcs_matches_teams_accum %>% filter(firstDragon == "TRUE" & win == "Win")
-#na_win_riftheraldkill <- nalcs_matches_teams_accum %>% filter(riftHeraldKills == 1 & win == "Win")
+#nalcs_matches_no_nas <- nalcs_matches_participants_accum %>%
+  #select(c(contains("Deltas"))) %>%
+  #mutate_at(vars(contains("Deltas")), funs(replace(., is.na(.), 0)))
+nalcs_matches_participants_accum <- nalcs_matches_participants_accum %>%
+  mutate_at(vars(contains("Deltas")), funs(replace(., is.na(.), 0)))
+nalcs_matches_participants_combined_accum <- get_accum_matches_participants(nalcs_matches, nalcs_matchid_df, combine_teammate_stats = TRUE)
+
+# Joins the "teams" DF and the "participants combined" DF together
+nalcs_matches_tpc_accum <- nalcs_matches_participants_combined_accum %>%
+  inner_join(nalcs_matches_teams_accum)
+nalcs_regseason_tpc_df <- nalcs_matches_tpc_accum %>%
+  filter(isTiebreaker == FALSE & isPlayoff == FALSE)
+# Create a total stats DF grouped by teams
+nalcs_regseason_team_totals_df <-
+  # First parentheses group: sums of stats by team
+  (nalcs_regseason_tpc_df %>%
+    group_by(teamName) %>%
+    summarise_at(vars(kills:wardsKilled, baronKills:duration, 'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20', 'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10', 'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), sum)) %>%
+    # More parenthesis groups: tallying first-objective columns
+  inner_join(nalcs_regseason_tpc_df %>%
+    group_by(teamName, firstBlood) %>%
+    tally() %>% spread(firstBlood, n) %>% select('TRUE') %>% rename('firstBloods' = 'TRUE')) %>%
+  inner_join(nalcs_regseason_tpc_df %>%
+    group_by(teamName, firstTower) %>%
+    tally() %>% spread(firstTower, n) %>% select('TRUE') %>% rename('firstTowers' = 'TRUE')) %>%
+  inner_join(nalcs_regseason_tpc_df %>%
+    group_by(teamName, firstInhibitor) %>%
+    tally() %>% spread(firstInhibitor, n) %>% select('TRUE') %>% rename('firstInhibitors' = 'TRUE')) %>%
+  inner_join(nalcs_regseason_tpc_df %>%
+    group_by(teamName, firstBaron) %>%
+    tally() %>% spread(firstBaron, n) %>% select('TRUE') %>% rename('firstBarons' = 'TRUE')) %>%
+  inner_join(nalcs_regseason_tpc_df %>%
+    group_by(teamName, firstDragon) %>%
+    tally() %>% spread(firstDragon, n) %>% select('TRUE') %>% rename('firstDragons' = 'TRUE')) %>%
+    # Last parentheses group: tallying wins and losses by team
+  inner_join(nalcs_regseason_tpc_df %>%
+    group_by(teamName, win) %>%
+    tally() %>%
+    spread(win, n) %>%
+    rename('losses' = 'FALSE', 'wins' = 'TRUE'))
+# Reordering columns
+nalcs_regseason_team_totals_df <- nalcs_regseason_team_totals_df[, c(1, 54, 53, 2:52)]
+
+#nalcs_matches_regseason_teams <- nalcs_matches_teams_accum %>%
+  #filter(isTiebreaker == FALSE & isPlayoff == FALSE)
+#nalcs_matches_regseason_participants <- nalcs_matches_participants_accum %>%
+  #filter(isTiebreaker == FALSE & isPlayoff == FALSE)
+
+na_matches_all_total_games <- nrow(nalcs_matches)
+
+na_matches_all_teams_winlose_avg_stats <- nalcs_matches_teams_accum %>%
+  group_by(win) %>%
+  summarise_each(funs(mean), towerKillAvg = towerKills, inhibitorKillAvg = inhibitorKills, baronKillAvg = baronKills, dragonKillAvg = dragonKills, riftHeraldKillAvg = riftHeraldKills)
+
+na_matches_all_teams_pctwin_stats <- nalcs_matches_teams_accum %>%
+  group_by(win) %>%
+  summarise_each(funs(mean), firstBlood, firstTower, firstInhibitor, firstBaron, firstDragon, firstRiftHerald)
+
+na_matches_all_teams_pctwin_stats_by_team <- nalcs_matches_teams_accum %>%
+  group_by(teamName, win) %>%
+  summarise_each(funs(mean), firstBlood, firstTower, firstInhibitor, firstBaron, firstDragon, firstRiftHerald, duration)
+
+na_matches_tally_firstbaron <- nalcs_matches_teams_accum %>%
+  filter(firstBaron == TRUE) %>%
+  nrow()
+na_matches_winprob_firstbaron <- nalcs_matches_teams_accum %>%
+  filter(firstBaron == TRUE) %>%
+  group_by(win) %>%
+  summarise(probability = n() / na_matches_tally_firstbaron)
 
 na_bluered_avg_stats <- nalcs_matches_teams_accum %>%
   group_by(teamId) %>%
@@ -316,14 +444,14 @@ na_bluered_winpct_by_team <- get_league_bluered_winpct_by_team(nalcs_matches_tea
 # MSI 2018 data
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# MSI 2018 Play-In Stage
-msipi_matchid_df <- read.csv("MSI_PlayInAll2018.csv")
-# Group Stage 
-msigs_matchid_df <- read.csv("MSI_GroupStage2018.csv")
-# Group Stage Tiebreakers and Knockouts
-msiko_matchid_df <- read.csv("MSI_GroupStageTBKO2018.csv")
-# All MSI 2018
-msiall_matchid_df <- read.csv("MSI_All2018.csv")
+## MSI 2018 Play-In Stage
+#msipi_matchid_df <- read.csv("MSI_PlayInAll2018.csv")
+## Group Stage 
+#msigs_matchid_df <- read.csv("MSI_GroupStage2018.csv")
+## Group Stage Tiebreakers and Knockouts
+#msiko_matchid_df <- read.csv("MSI_GroupStageTBKO2018.csv")
+## All MSI 2018
+#msiall_matchid_df <- read.csv("MSI_All2018.csv")
 
 #msipi_matches <- get_league_match_data_list(msipi_matchid_df)
 #msipi_matches_teams_accum <- get_accum_matches_teams(msipi_matches, msipi_matchid_df)
@@ -335,13 +463,13 @@ msiall_matchid_df <- read.csv("MSI_All2018.csv")
 #filter(win == "Win") %>%
 #count(win)
 
-msiall_matches <- get_league_match_data_list(msiall_matchid_df)
-msiall_matches_teams_accum <- get_accum_matches_teams(msiall_matches, msiall_matchid_df)
-msiall_bluered_avg_stats <- msiall_matches_teams_accum %>%
-  group_by(teamId) %>%
-  summarise_each(funs(mean), towerKillAvg = towerKills, inhibitorKillAvg = inhibitorKills, baronKillAvg = baronKills, dragonKillAvg = dragonKills, riftHeraldKillAvg = riftHeraldKills)
-msiall_bluered_wins <- msiall_matches_teams_accum %>%
-  group_by(teamId, win) %>%
-  filter(win == "Win") %>%
-  count(win)
-msiall_bluered_winpct_by_team <- get_league_bluered_winpct_by_team(msiall_matches_teams_accum)
+#msiall_matches <- get_league_match_data_list(msiall_matchid_df)
+#msiall_matches_teams_accum <- get_accum_matches_teams(msiall_matches, msiall_matchid_df)
+#msiall_bluered_avg_stats <- msiall_matches_teams_accum %>%
+  #group_by(teamId) %>%
+  #summarise_each(funs(mean), towerKillAvg = towerKills, inhibitorKillAvg = inhibitorKills, baronKillAvg = baronKills, dragonKillAvg = dragonKills, riftHeraldKillAvg = riftHeraldKills)
+#msiall_bluered_wins <- msiall_matches_teams_accum %>%
+  #group_by(teamId, win) %>%
+  #filter(win == "Win") %>%
+  #count(win)
+#msiall_bluered_winpct_by_team <- get_league_bluered_winpct_by_team(msiall_matches_teams_accum)
