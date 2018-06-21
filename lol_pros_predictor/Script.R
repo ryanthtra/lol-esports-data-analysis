@@ -280,6 +280,58 @@ get_league_bluered_winpct_by_team <- function(league_matches_teams_accum) {
 
   return(return_df)
 }
+
+
+get_league_regseason_team_totals <- function(league_matches_tpc_accum) {
+  # Filter for just regular season games
+  league_regseason_tpc_df <- league_matches_tpc_accum %>%
+  filter(isTiebreaker == FALSE & isPlayoff == FALSE)
+
+  # Create a total stats DF grouped by teams
+  league_regseason_team_totals_df <-
+  # First parentheses group: sums of stats by team
+  (league_regseason_tpc_df %>%
+      group_by(teamName) %>%
+      summarise_at(vars(kills:wardsKilled, baronKills:duration, 'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20', 'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10', 'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), sum)) %>%
+  # More parenthesis groups: tallying first-objective columns
+  inner_join(league_regseason_tpc_df %>%
+      group_by(teamName, firstBlood) %>%
+      tally() %>% spread(firstBlood, n) %>% select('TRUE') %>% rename('firstBloods' = 'TRUE')) %>%
+    inner_join(league_regseason_tpc_df %>%
+      group_by(teamName, firstTower) %>%
+      tally() %>% spread(firstTower, n) %>% select('TRUE') %>% rename('firstTowers' = 'TRUE')) %>%
+    inner_join(league_regseason_tpc_df %>%
+      group_by(teamName, firstInhibitor) %>%
+      tally() %>% spread(firstInhibitor, n) %>% select('TRUE') %>% rename('firstInhibitors' = 'TRUE')) %>%
+    inner_join(league_regseason_tpc_df %>%
+      group_by(teamName, firstBaron) %>%
+      tally() %>% spread(firstBaron, n) %>% select('TRUE') %>% rename('firstBarons' = 'TRUE')) %>%
+    inner_join(league_regseason_tpc_df %>%
+      group_by(teamName, firstDragon) %>%
+      tally() %>% spread(firstDragon, n) %>% select('TRUE') %>% rename('firstDragons' = 'TRUE')) %>%
+  # Last parentheses group: tallying wins and losses by team
+  inner_join(league_regseason_tpc_df %>%
+      group_by(teamName, win) %>%
+      tally() %>%
+      spread(win, n) %>%
+      rename('losses' = 'FALSE', 'wins' = 'TRUE'))
+
+  # Reordering columns
+  league_regseason_team_totals_df <- league_regseason_team_totals_df[, c(1, 54, 53, 2:52)]
+}
+
+
+get_league_regseason_team_avgs <- function(league_matches_tpc_accum) {
+  # Filter for just regular season games
+  league_regseason_tpc_df <- league_matches_tpc_accum %>%
+  filter(isTiebreaker == FALSE & isPlayoff == FALSE)
+
+  ## Create a avg stats DF grouped by teams
+  #league_regseason_team_totals_df <-
+  #(league_matches_tpc_accum %>%
+    #group_by(teamName) %>%
+    #summarise_at())
+}
 #*************************************
 # End -- Helper methods
 #*************************************
@@ -338,38 +390,41 @@ nalcs_matches_participants_combined_accum <- get_accum_matches_participants(nalc
 # Joins the "teams" DF and the "participants combined" DF together
 nalcs_matches_tpc_accum <- nalcs_matches_participants_combined_accum %>%
   inner_join(nalcs_matches_teams_accum)
-nalcs_regseason_tpc_df <- nalcs_matches_tpc_accum %>%
-  filter(isTiebreaker == FALSE & isPlayoff == FALSE)
-# Create a total stats DF grouped by teams
-nalcs_regseason_team_totals_df <-
-  # First parentheses group: sums of stats by team
-  (nalcs_regseason_tpc_df %>%
-    group_by(teamName) %>%
-    summarise_at(vars(kills:wardsKilled, baronKills:duration, 'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20', 'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10', 'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), sum)) %>%
-    # More parenthesis groups: tallying first-objective columns
-  inner_join(nalcs_regseason_tpc_df %>%
-    group_by(teamName, firstBlood) %>%
-    tally() %>% spread(firstBlood, n) %>% select('TRUE') %>% rename('firstBloods' = 'TRUE')) %>%
-  inner_join(nalcs_regseason_tpc_df %>%
-    group_by(teamName, firstTower) %>%
-    tally() %>% spread(firstTower, n) %>% select('TRUE') %>% rename('firstTowers' = 'TRUE')) %>%
-  inner_join(nalcs_regseason_tpc_df %>%
-    group_by(teamName, firstInhibitor) %>%
-    tally() %>% spread(firstInhibitor, n) %>% select('TRUE') %>% rename('firstInhibitors' = 'TRUE')) %>%
-  inner_join(nalcs_regseason_tpc_df %>%
-    group_by(teamName, firstBaron) %>%
-    tally() %>% spread(firstBaron, n) %>% select('TRUE') %>% rename('firstBarons' = 'TRUE')) %>%
-  inner_join(nalcs_regseason_tpc_df %>%
-    group_by(teamName, firstDragon) %>%
-    tally() %>% spread(firstDragon, n) %>% select('TRUE') %>% rename('firstDragons' = 'TRUE')) %>%
-    # Last parentheses group: tallying wins and losses by team
-  inner_join(nalcs_regseason_tpc_df %>%
-    group_by(teamName, win) %>%
-    tally() %>%
-    spread(win, n) %>%
-    rename('losses' = 'FALSE', 'wins' = 'TRUE'))
-# Reordering columns
-nalcs_regseason_team_totals_df <- nalcs_regseason_team_totals_df[, c(1, 54, 53, 2:52)]
+
+nalcs_regseason_team_totals_df <- get_league_regseason_team_totals(nalcs_matches_tpc_accum)
+
+#nalcs_regseason_tpc_df <- nalcs_matches_tpc_accum %>%
+  #filter(isTiebreaker == FALSE & isPlayoff == FALSE)
+## Create a total stats DF grouped by teams
+#nalcs_regseason_team_totals_df <-
+  ## First parentheses group: sums of stats by team
+  #(nalcs_regseason_tpc_df %>%
+    #group_by(teamName) %>%
+    #summarise_at(vars(kills:wardsKilled, baronKills:duration, 'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20', 'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10', 'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), sum)) %>%
+    ## More parenthesis groups: tallying first-objective columns
+  #inner_join(nalcs_regseason_tpc_df %>%
+    #group_by(teamName, firstBlood) %>%
+    #tally() %>% spread(firstBlood, n) %>% select('TRUE') %>% rename('firstBloods' = 'TRUE')) %>%
+  #inner_join(nalcs_regseason_tpc_df %>%
+    #group_by(teamName, firstTower) %>%
+    #tally() %>% spread(firstTower, n) %>% select('TRUE') %>% rename('firstTowers' = 'TRUE')) %>%
+  #inner_join(nalcs_regseason_tpc_df %>%
+    #group_by(teamName, firstInhibitor) %>%
+    #tally() %>% spread(firstInhibitor, n) %>% select('TRUE') %>% rename('firstInhibitors' = 'TRUE')) %>%
+  #inner_join(nalcs_regseason_tpc_df %>%
+    #group_by(teamName, firstBaron) %>%
+    #tally() %>% spread(firstBaron, n) %>% select('TRUE') %>% rename('firstBarons' = 'TRUE')) %>%
+  #inner_join(nalcs_regseason_tpc_df %>%
+    #group_by(teamName, firstDragon) %>%
+    #tally() %>% spread(firstDragon, n) %>% select('TRUE') %>% rename('firstDragons' = 'TRUE')) %>%
+    ## Last parentheses group: tallying wins and losses by team
+  #inner_join(nalcs_regseason_tpc_df %>%
+    #group_by(teamName, win) %>%
+    #tally() %>%
+    #spread(win, n) %>%
+    #rename('losses' = 'FALSE', 'wins' = 'TRUE'))
+## Reordering columns
+#nalcs_regseason_team_totals_df <- nalcs_regseason_team_totals_df[, c(1, 54, 53, 2:52)]
 
 #nalcs_matches_regseason_teams <- nalcs_matches_teams_accum %>%
   #filter(isTiebreaker == FALSE & isPlayoff == FALSE)
