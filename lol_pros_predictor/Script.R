@@ -313,7 +313,7 @@ remove(champions_df)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # NA LCS 2018 Spring Split -- Regular Season and Playoffs
-nalcs_matchid_df <- read.csv("NALCS_Spring2018.csv")
+nalcs_matchid_df <- read.csv("gameid_data/NALCS_Spring2018.csv")
 
 nalcs_matches <- get_league_match_data_list(nalcs_matchid_df)
 
