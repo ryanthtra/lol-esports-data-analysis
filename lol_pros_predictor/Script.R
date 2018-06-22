@@ -178,8 +178,24 @@ get_accum_matches_participants <- function(league_matchlist, league_matchid_df, 
     league_matches_participants_accum <- league_matches_participants_accum %>% bind_rows(flattened_df)
   }
 
+  ## Have to change team roles into TOP, JUNGLE, MID, BOTCARRY, SUPPORT
+  #league_matches_participants_accum <- league_matches_participants_accum %>%
+    #mutate(teamRole = function(role, lane) {
+      #if (role == "DUO_SUPPORT") {
+        #return ("SUPPORT")
+      #} else if (role == "DUO_CARRY") {
+        #return ("BOTCARRY")
+      #} else if ()
+    #})
+
   # TODO: Remove some irrelevant columns
   return(league_matches_participants_accum)
+}
+
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# Helper function to get team role
+get_team_role_from_rolelane <- function(league_matches_participants_accum) {
+
 }
 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -320,6 +336,116 @@ get_league_regseason_team_avgs <- function(league_matches_tpc_accum, split_bluer
     summarise_at(vars(win, kills:duration), mean))
   }
 }
+
+
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+get_league_regseason_summoner_avgs <- function(league_matches_participants_accum) {
+  # Filter for just regular season games
+  league_regseason_participants_accum <- league_matches_participants_accum %>%
+    filter(isTiebreaker == FALSE & isPlayoff == FALSE)
+
+  # Create avg stats DF groups by lane and role
+  league_regseason_participants_accum <-
+  (league_regseason_participants_accum %>%
+  group_by(teamName, summonerName) %>%
+  summarize_at(vars(kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:firstBloodKill, firstTowerKill:firstInhibitorAssist, 'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20', 'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10', 'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), mean)) %>%
+  # Tallying wins and losses by summoner name
+  inner_join(league_regseason_participants_accum %>%
+      group_by(teamName, summonerName, win) %>%
+      tally() %>%
+      spread(win, n) %>% # "transposes" the DF so that TRUE (win) and FALSE (loss) are the column names
+      rename('losses' = 'FALSE', 'wins' = 'TRUE') %>% # renames the T/F columns to W/L
+      mutate_at(vars(wins,losses), funs(replace(., is.na(.), 0)))) 
+
+  # Reordering columns - teamName, wins, losses, <everything else>
+  league_regseason_participants_accum <- league_regseason_participants_accum[, c(1, 2, 53, 52, 3:51)]
+}
+
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+get_league_regseason_summoner_totals <- function(league_matches_participants_accum, split_bluered = FALSE) {
+  # Filter for just regular season games
+  league_regseason_participants_df <- league_matches_participants_accum %>%
+  filter(isTiebreaker == FALSE & isPlayoff == FALSE)
+
+  # Create a total stats DF grouped by teams
+  league_regseason_summoners_totals_df <- data.frame(NULL)
+  if (split_bluered == FALSE) {
+    league_regseason_summoners_totals_df <-
+    # First parentheses group: sums of stats by team
+    (league_regseason_participants_df %>%
+      group_by(teamName, summonerName) %>%
+      summarise_at(vars(kills:wardsKilled, 'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20', 'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10', 'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), sum)) %>%
+    # More parenthesis groups: tallying first-objective columns
+    inner_join(league_regseason_participants_df %>%
+      group_by(teamName, summonerName, firstBloodKill) %>%
+      tally() %>% spread(firstBloodKill, n) %>% select('TRUE') %>% rename('firstBloodKills' = 'TRUE')) %>%
+    ## All firstBloodAssists are FALSE, so commented out
+    #inner_join(league_regseason_participants_df %>%
+    #group_by(teamName, summonerName, firstBloodAssist) %>%
+    #tally() %>% spread(firstBloodAssist, n) %>% select('TRUE') %>% rename('firstBloodAssists' = 'TRUE')) %>%
+    inner_join(league_regseason_participants_df %>%
+      group_by(teamName, summonerName, firstTowerKill) %>%
+      tally() %>% spread(firstTowerKill, n) %>% select('TRUE') %>% rename('firstTowerKills' = 'TRUE')) %>%
+    inner_join(league_regseason_participants_df %>%
+      group_by(teamName, summonerName, firstTowerAssist) %>%
+      tally() %>% spread(firstTowerAssist, n) %>% select('TRUE') %>% rename('firstTowerAssists' = 'TRUE')) %>%
+    inner_join(league_regseason_participants_df %>%
+      group_by(teamName, summonerName, firstInhibitorKill) %>%
+      tally() %>% spread(firstInhibitorKill, n) %>% select('TRUE') %>% rename('firstInhibitorKills' = 'TRUE')) %>%
+    inner_join(league_regseason_participants_df %>%
+      group_by(teamName, summonerName, firstInhibitorAssist) %>%
+      tally() %>% spread(firstInhibitorAssist, n) %>% select('TRUE') %>% rename('firstInhibitorAssists' = 'TRUE')) %>%
+    # Last parentheses group: tallying wins and losses by summoner
+    inner_join(league_regseason_participants_df %>%
+      group_by(teamName, summonerName, win) %>%
+      tally() %>%
+      spread(win, n) %>% # "transposes" the DF so that TRUE (win) and FALSE (loss) are the column names
+      rename('losses' = 'FALSE', 'wins' = 'TRUE')) # renames the T/F columns to W/L
+
+    league_regseason_summoners_totals_df = league_regseason_summoners_totals_df %>% 
+    mutate_at(vars(firstBloodKills:firstInhibitorAssists), funs(replace(., is.na(.), 0)))
+
+    # Reordering columns - teamName, wins, losses, <everything else>
+    league_regseason_summoners_totals_df <- league_regseason_summoners_totals_df[, c(1, 2, 63, 62, 3:61)]
+  } else {
+    league_regseason_summoners_totals_df <-
+    # First parentheses group: sums of stats by team
+    (league_regseason_participants_df %>%
+      group_by(teamName, teamId, summonerName) %>%
+      summarise_at(vars(kills:wardsKilled, 'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20', 'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10', 'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), sum)) %>%
+    # More parenthesis groups: tallying first-objective columns
+    inner_join(league_regseason_participants_df %>%
+      group_by(teamName, teamId, summonerName, firstBloodKill) %>%
+      tally() %>% spread(firstBloodKill, n) %>% select('TRUE') %>% rename('firstBloodKills' = 'TRUE')) %>%
+    ## All firstBloodAssists are FALSE, so commented out
+    #inner_join(league_regseason_participants_df %>%
+      #group_by(teamName, teamId, summonerName, firstBloodAssist) %>%
+      #tally() %>% spread(firstBloodAssist, n) %>% select('TRUE') %>% rename('firstBloodAssists' = 'TRUE')) %>%
+    inner_join(league_regseason_participants_df %>%
+      group_by(teamName, teamId, summonerName, firstTowerKill) %>%
+      tally() %>% spread(firstTowerKill, n) %>% select('TRUE') %>% rename('firstTowerKills' = 'TRUE')) %>%
+    inner_join(league_regseason_participants_df %>%
+      group_by(teamName, teamId, summonerName, firstTowerAssist) %>%
+      tally() %>% spread(firstTowerAssist, n) %>% select('TRUE') %>% rename('firstTowerAssists' = 'TRUE')) %>%
+    inner_join(league_regseason_participants_df %>%
+      group_by(teamName, teamId, summonerName, firstInhibitorKill) %>%
+      tally() %>% spread(firstInhibitorKill, n) %>% select('TRUE') %>% rename('firstInhibitorKills' = 'TRUE')) %>%
+    inner_join(league_regseason_participants_df %>%
+      group_by(teamName, teamId, summonerName, firstInhibitorAssist) %>%
+      tally() %>% spread(firstInhibitorAssist, n) %>% select('TRUE') %>% rename('firstInhibitorAssists' = 'TRUE')) %>%
+    # Last parentheses group: tallying wins and losses by summoner
+    inner_join(league_regseason_participants_df %>%
+      group_by(teamName, teamId, summonerName, win) %>%
+      tally() %>%
+      spread(win, n) %>% # "transposes" the DF so that TRUE (win) and FALSE (loss) are the column names
+      rename('losses' = 'FALSE', 'wins' = 'TRUE') %>% # renames the T/F columns to W/L
+      mutate_at(vars(wins, losses), funs(replace(., is.na(.), 0))))
+
+    # Reordering columns - teamName, wins, losses, <everything else>
+    #league_regseason_summoners_totals_df <- league_regseason_summoners_totals_df[, c(1, 54, 53, 2:52)]
+  }
+}
+
 #*************************************
 # End -- Helper methods
 #*************************************
@@ -378,6 +504,10 @@ nalcs_regseason_team_totals_df <- get_league_regseason_team_totals(nalcs_matches
 nalcs_regseason_team_bluered_totals_df <- get_league_regseason_team_totals(nalcs_matches_tpc_accum, split_bluered = TRUE)
 nalcs_regseason_team_avgs_df <- get_league_regseason_team_avgs(nalcs_matches_tpc_accum)
 nalcs_regseason_team_bluered_avgs_df <- get_league_regseason_team_avgs(nalcs_matches_tpc_accum, split_bluered = TRUE)
+nalcs_regseason_summoner_avgs_df <- get_league_regseason_summoner_avgs(nalcs_matches_participants_accum)
+nalcs_regseason_summoner_totals_df <- get_league_regseason_summoner_totals(nalcs_matches_participants_accum)
+
+
 
 na_matches_all_teams_winlose_avg_stats <- nalcs_matches_teams_accum %>%
   group_by(win) %>%
