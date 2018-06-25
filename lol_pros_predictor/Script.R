@@ -2,6 +2,7 @@ library(httr)
 library(dplyr)
 library(tidyr)
 library(jsonlite)
+library(Kmisc)
 suppressMessages(library(dplyr))
 #library(future)
 
@@ -173,30 +174,32 @@ get_accum_matches_participants <- function(league_matchlist, league_matchid_df, 
     if (combine_teammate_stats == TRUE) {
       tmp_fdf1 <- get_match_combined_participant_stats_df(tmp_fdf1)
       tmp_fdf2 <- get_match_combined_participant_stats_df(tmp_fdf2)
-    }
+    } 
     flattened_df <- bind_rows(tmp_fdf1, tmp_fdf2)
+
+    if (combine_teammate_stats == FALSE) {
+      flattened_df['teamRole'] <- NULL
+      # Get team roles
+      for (j in 1:nrow(flattened_df)) {
+        if (flattened_df[j, 'participantId'] == 1 || flattened_df[j, 'participantId'] == 6) {
+          flattened_df[j, 'teamRole'] = "TOP"
+        } else if (flattened_df[j, 'participantId'] == 2 || flattened_df[j, 'participantId'] == 7) {
+          flattened_df[j, 'teamRole'] = "JUNGLE"
+        } else if (flattened_df[j, 'participantId'] == 3 || flattened_df[j, 'participantId'] == 8) {
+          flattened_df[j, 'teamRole'] = "MID"
+        } else if (flattened_df[j, 'participantId'] == 4 || flattened_df[j, 'participantId'] == 9) {
+          flattened_df[j, 'teamRole'] = "BOTCARRY"
+        } else {
+          flattened_df[j, 'teamRole'] = "SUPPORT"
+        }
+      }
+    }
     league_matches_participants_accum <- league_matches_participants_accum %>% bind_rows(flattened_df)
   }
 
-  ## Have to change team roles into TOP, JUNGLE, MID, BOTCARRY, SUPPORT
-  #league_matches_participants_accum <- league_matches_participants_accum %>%
-    #mutate(teamRole = function(role, lane) {
-      #if (role == "DUO_SUPPORT") {
-        #return ("SUPPORT")
-      #} else if (role == "DUO_CARRY") {
-        #return ("BOTCARRY")
-      #} else if ()
-    #})
-
-  # TODO: Remove some irrelevant columns
   return(league_matches_participants_accum)
 }
 
-#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-# Helper function to get team role
-get_team_role_from_rolelane <- function(league_matches_participants_accum) {
-
-}
 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 get_flattened_match_participants_df <- function(match_participants_df, match_participantids_df) {
@@ -347,18 +350,18 @@ get_league_regseason_summoner_avgs <- function(league_matches_participants_accum
   # Create avg stats DF groups by lane and role
   league_regseason_participants_accum <-
   (league_regseason_participants_accum %>%
-  group_by(teamName, summonerName) %>%
+  group_by(teamName, summonerName, teamRole) %>%
   summarize_at(vars(kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:firstBloodKill, firstTowerKill:firstInhibitorAssist, 'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20', 'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10', 'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), mean)) %>%
   # Tallying wins and losses by summoner name
   inner_join(league_regseason_participants_accum %>%
-      group_by(teamName, summonerName, win) %>%
+      group_by(teamName, summonerName, teamRole, win) %>%
       tally() %>%
       spread(win, n) %>% # "transposes" the DF so that TRUE (win) and FALSE (loss) are the column names
       rename('losses' = 'FALSE', 'wins' = 'TRUE') %>% # renames the T/F columns to W/L
       mutate_at(vars(wins,losses), funs(replace(., is.na(.), 0)))) 
 
   # Reordering columns - teamName, wins, losses, <everything else>
-  league_regseason_participants_accum <- league_regseason_participants_accum[, c(1, 2, 53, 52, 3:51)]
+  league_regseason_participants_accum <- league_regseason_participants_accum[, c(1, 2, 54, 53, 3:52)]
 }
 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -373,7 +376,7 @@ get_league_regseason_summoner_totals <- function(league_matches_participants_acc
     league_regseason_summoners_totals_df <-
     # First parentheses group: sums of stats by team
     (league_regseason_participants_df %>%
-      group_by(teamName, summonerName) %>%
+      group_by(teamName, summonerName, teamRole) %>%
       summarise_at(vars(kills:wardsKilled, 'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20', 'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10', 'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), sum)) %>%
     # More parenthesis groups: tallying first-objective columns
     inner_join(league_regseason_participants_df %>%
@@ -406,7 +409,7 @@ get_league_regseason_summoner_totals <- function(league_matches_participants_acc
     mutate_at(vars(firstBloodKills:firstInhibitorAssists), funs(replace(., is.na(.), 0)))
 
     # Reordering columns - teamName, wins, losses, <everything else>
-    league_regseason_summoners_totals_df <- league_regseason_summoners_totals_df[, c(1, 2, 63, 62, 3:61)]
+    league_regseason_summoners_totals_df <- league_regseason_summoners_totals_df[, c(1, 2, 64, 63, 3:62)]
   } else {
     league_regseason_summoners_totals_df <-
     # First parentheses group: sums of stats by team
@@ -499,10 +502,16 @@ nalcs_matches_participants_combined_accum <- get_accum_matches_participants(nalc
 # Joins the "teams" DF and the "participants combined" DF together
 nalcs_matches_tpc_accum <- nalcs_matches_participants_combined_accum %>%
   inner_join(nalcs_matches_teams_accum)
+# Get opponent's data (just swapping the team names of each game in the previous DF)
+nalcs_matches_tpc_opps_accum <- nalcs_matches_tpc_accum %>%
+  group_by(gameNumber) %>%
+  mutate(teamName = ifelse(teamId == "Blue", as.character(lead(teamName)), as.character(lag(teamName))))
 
 nalcs_regseason_team_totals_df <- get_league_regseason_team_totals(nalcs_matches_tpc_accum)
+nalcs_regseason_teamopps_totals_df <- get_league_regseason_team_totals(nalcs_matches_tpc_opps_accum)
 nalcs_regseason_team_bluered_totals_df <- get_league_regseason_team_totals(nalcs_matches_tpc_accum, split_bluered = TRUE)
 nalcs_regseason_team_avgs_df <- get_league_regseason_team_avgs(nalcs_matches_tpc_accum)
+nalcs_regseason_teamopps_avgs_df <- get_league_regseason_team_avgs(nalcs_matches_tpc_opps_accum)
 nalcs_regseason_team_bluered_avgs_df <- get_league_regseason_team_avgs(nalcs_matches_tpc_accum, split_bluered = TRUE)
 nalcs_regseason_summoner_avgs_df <- get_league_regseason_summoner_avgs(nalcs_matches_participants_accum)
 nalcs_regseason_summoner_totals_df <- get_league_regseason_summoner_totals(nalcs_matches_participants_accum)
