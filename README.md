@@ -1,6 +1,9 @@
 # lol-esports-data-analysis
 Analysis, insights, and modeling for various League of Legends eSports leagues for the 2018 Spring Split -- a Springboard Intro to Data Science capstone project
 
+![League of Legends Logo](presentation-images/League-of-Legends-logo.png)
+
+![NALCS Logo](presentation-images/nalcs-logo.png)![EULCS Logo](presentation-images/eulcs-logo.png)![LCK Logo](presentation-images/lck-logo.png)![LPL Logo](presentation-images/lpl-logo.png)![LMS Logo](presentation-images/lms-logo.png)
 ### Introduction:
 League of Legends (LoL) is a multiplayer online battle arena (MOBA) videogame by Riot Games.  The primary game mode for LoL is Summoner's Rift (which is also the name of the map, or arena), in which two teams of five players vie to destroy their opponents' base, called the Nexus.  Each player chooses one of 141 unique avatars, called champions, to represent them, and each champion has its own unique blend of attributes, skills, and abilities.
 
