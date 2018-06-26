@@ -177,6 +177,9 @@ get_accum_matches_participants <- function(league_matchlist, league_matchid_df, 
     } 
     flattened_df <- bind_rows(tmp_fdf1, tmp_fdf2)
 
+    # Add game duration 
+    flattened_df["duration"] <- rep(league_matchlist[[i]]$gameDuration, 10)
+
     if (combine_teammate_stats == FALSE) {
       flattened_df['teamRole'] <- NULL
       # Get team roles
@@ -230,7 +233,7 @@ get_match_combined_participant_stats_df <- function(match_team_df) {
   # (the other group-by variables are used just so they can be included in the output DF)
   # Sums up a bunch of columns together 
   match_team_df <- match_team_df %>%
-    group_by(teamName, teamId, win, gameNumber, isTiebreaker, isPlayoff) %>%
+    group_by(teamName, teamId, win, gameNumber, duration, isTiebreaker, isPlayoff) %>%
     summarize_at(vars(kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:goldSpent, totalMinionsKilled:wardsKilled, 'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20', 'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10', 'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), sum)
   return(match_team_df)
 }
