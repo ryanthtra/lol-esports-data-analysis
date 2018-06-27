@@ -1,7 +1,16 @@
 # Data Wrangling Report
+#### by Ryan Transfiguracion
+Before we start explaining the wrangling process, here are the "final" desired data frames for the NALCS 2018 Spring Split that we'll be using for later statistical analyses and models.  Click on the each link to see its corresponding CSV file:
 
-Before we start explaining the wrangling process, here are the final desired data frames we'll be using for later statistical analyses and models.
+[Entire Split Match-by-match Team Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_match_totals.csv)
 
+[Entire Split Match-by-match Player Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_match_player_stats.csv)
+
+[Entire Split Match-by-match Champ Bans](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_champ_bans.csv)
+
+[Regular Season Team Cumulative Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_team_totals.csv)
+
+[Regular Season Opposing Team Cumulative Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_oppsteam_totals.csv)
 
 
 ## Obtaining the Data for Making API Requests
@@ -63,7 +72,10 @@ library(jsonlite)
 Then, we construct the Web API request URI using the ```paste()``` function: 
 
 ```R
-uri <- paste(acs_prefix_domain, "/v1/stats/game/", chr_platform_id, "/", num_match_id, ifelse(chr_game_hash != "", paste("?gameHash=", chr_game_hash, sep = ""), ""), sep = "")
+uri <- paste(acs_prefix_domain, "/v1/stats/game/", 
+  chr_platform_id, "/", num_match_id, 
+  ifelse(chr_game_hash != "", 
+  paste("?gameHash=", chr_game_hash, sep = ""), ""), sep = "")
 ```
 In the block above, if we use the example match again, ```acs_prefix_domain``` is https://acs.leagueoflegends.com, ```chr_platform_id``` is TRLH1, ```num_match_id``` is 1002440062, and ```chr_game_hash``` is a3b08c115923f00d.
 
@@ -97,7 +109,9 @@ Here is the custom function, ```get_league_match_data_list()```:
 get_league_match_data_list <- function(league_matchid_df) {
   matchlist <- list()
   for (i in 1:nrow(league_matchid_df)) {
-    matchlist[[i]] <- get_acs_match_by_matchid(league_matchid_df$Region.ID[[i]], league_matchid_df$Game.ID[[i]], chr_game_hash = league_matchid_df$Hash.ID[[i]])
+    matchlist[[i]] <- get_acs_match_by_matchid(league_matchid_df$Region.ID[[i]],
+     league_matchid_df$Game.ID[[i]], 
+     chr_game_hash = league_matchid_df$Hash.ID[[i]])
   }
   return(matchlist)
 }
@@ -137,7 +151,7 @@ get_accum_matches_teams <- function(league_matchlist, league_matchid_df) {
     # Concatenate rows from current match onto the accumulation DF
     league_matches_teams_accum <- league_matches_teams_accum %>% bind_rows(league_matchlist[[i]]$teams %>% select(-bans))
   }
-  #Change all teamId = 100/200 to Blue/Red
+  # Change all teamId = 100/200 to Blue/Red
   # and remove some irrelevant columns
   league_matches_teams_accum <- league_matches_teams_accum %>%
     mutate(teamId = replace(teamId, grepl('100', teamId), 'Blue')) %>%
@@ -147,3 +161,47 @@ get_accum_matches_teams <- function(league_matchlist, league_matchid_df) {
 }
 ```
 
+Now, let's look at the ```participants``` and ```participantIdentities``` data frames:
+![Single Match Teams Data Frame](presentation-images/data-wrangling/13.png)
+
+There are a lot of nested data frames within the data frame, but fortunately, each observation in each data frame corresponds with each player in the match, as shown by that each nested data frame (```stats```, ```timeline```, and ```xxxPerMinDeltas```) plus the ```participantIdentities``` DF has a ```participantId``` column.  Thus, we can join them together.  However, the ```timeline``` data frame itself has a lot of nested DFs, and each those DFs have the same column names (``` `10-20` ```, ``` `0-10` ```, etc.).  We will use the ```jsonlite::flatten()``` function on the ```timeline``` DF and then join all the previously mentioned nested DFs together:
+
+```R
+ret_df <- match_participants_df %>%
+    # Remove the nested stats and timeline DFs
+    select(-stats, - timeline) %>%
+    # Bind with the participantIdentites$player DF
+    bind_cols(match_participantids_df$player) %>%
+    # Join with the separate champions DF (by championId column)
+    inner_join(champions_df_simple) %>%
+    # Join with the stats DF (by participantId column)
+    inner_join(match_participants_df$stats) %>%
+    # Join with timeline DF (by participantId column)
+    inner_join(match_participants_df$timeline %>% flatten())
+```
+
+Next, like with the ```teams``` DF, we add ```gameNumber```, ```isTiebreaker```, ```isPlayoff```, ```duration```, and ```Blue``` and ```Red``` team columns to the newly-joined ```participants``` DF.
+
+Addionally, we want to add the a ```teamRole``` column to the ```participants``` DF.  Luckily, through personal observation and knowledge of the game and the eSport, we know that the players on each team are placed, in the DF, in the same order by their role: Top, Jungle, Mid, Bottom Carry, and Support.  Therefore, we can write such a script accordingly:
+
+```R
+flattened_df['teamRole'] <- NULL
+# Get team roles
+for (j in 1:nrow(flattened_df)) {
+  if        (flattened_df[j, 'participantId'] == 1 || 
+             flattened_df[j, 'participantId'] == 6) {
+    flattened_df[j, 'teamRole'] = "TOP"
+  } else if (flattened_df[j, 'participantId'] == 2 || 
+             flattened_df[j, 'participantId'] == 7) {
+    flattened_df[j, 'teamRole'] = "JUNGLE"
+  } else if (flattened_df[j, 'participantId'] == 3 || 
+             flattened_df[j, 'participantId'] == 8) {
+    flattened_df[j, 'teamRole'] = "MID"
+  } else if (flattened_df[j, 'participantId'] == 4 || 
+             flattened_df[j, 'participantId'] == 9) {
+    flattened_df[j, 'teamRole'] = "BOTCARRY"
+  } else {
+    flattened_df[j, 'teamRole'] = "SUPPORT"
+  }
+}
+```
