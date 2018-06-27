@@ -520,42 +520,6 @@ nalcs_regseason_summoner_totals_df <- get_league_regseason_summoner_totals(nalcs
 
 
 
-na_matches_all_teams_winlose_avg_stats <- nalcs_matches_teams_accum %>%
-  group_by(win) %>%
-  summarise_each(funs(mean), towerKillAvg = towerKills, inhibitorKillAvg = inhibitorKills, baronKillAvg = baronKills, dragonKillAvg = dragonKills, riftHeraldKillAvg = riftHeraldKills)
-
-na_matches_all_teams_pctwin_stats <- nalcs_matches_teams_accum %>%
-  group_by(win) %>%
-  summarise_each(funs(mean), firstBlood, firstTower, firstInhibitor, firstBaron, firstDragon, firstRiftHerald)
-
-na_matches_all_teams_pctwin_stats_by_team <- nalcs_matches_teams_accum %>%
-  group_by(teamName, win) %>%
-  summarise_each(funs(mean), firstBlood, firstTower, firstInhibitor, firstBaron, firstDragon, firstRiftHerald, duration)
-
-na_matches_tally_firstbaron <- nalcs_matches_teams_accum %>%
-  filter(firstBaron == TRUE) %>%
-  nrow()
-na_matches_winprob_firstbaron <- nalcs_matches_teams_accum %>%
-  filter(firstBaron == TRUE) %>%
-  group_by(win) %>%
-  summarise(probability = n() / na_matches_tally_firstbaron)
-
-na_bluered_avg_stats <- nalcs_matches_teams_accum %>%
-  group_by(teamId) %>%
-  summarise_each(funs(mean), towerKillAvg = towerKills, inhibitorKillAvg = inhibitorKills, baronKillAvg = baronKills, dragonKillAvg = dragonKills, riftHeraldKillAvg = riftHeraldKills)
-
-na_bluered_wins <- nalcs_matches_teams_accum %>%
-  group_by(teamId, win) %>%
-  filter(win == "Win") %>%
-  count(win)
-na_bluered_avgs_by_team <- nalcs_matches_teams_accum %>%
-  group_by(teamName, teamId) %>%
-  summarise_each(funs(mean), towerKillAvg = towerKills, inhibitorKillAvg = inhibitorKills, baronKillAvg = baronKills, dragonKillAvg = dragonKills, riftHeraldKillAvg = riftHeraldKills)
-#na_bluered_totals_by_team <- nalcs_matches_teams_accum %>%
-#group_by(teamName, teamId) %>%
-#summarise_each(funs(sum), towerKillTot = towerKills, inhibitorKillTot = inhibitorKills, baronKillTot = baronKills, dragonKillTot = dragonKills, riftHeraldKillTot = riftHeraldKills)
-na_bluered_winpct_by_team <- get_league_bluered_winpct_by_team(nalcs_matches_teams_accum)
-
 
 
 

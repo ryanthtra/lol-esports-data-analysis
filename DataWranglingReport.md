@@ -1,4 +1,10 @@
-# Obtaining the Data
+# Data Wrangling Report
+
+Before we start explaining the wrangling process, here are the final desired data frames we'll be using for later statistical analyses and models.
+
+
+
+## Obtaining the Data
 All the match data was obtained from lolesports.com.  For eample, in order to access a NALCS 2018 Spring Split match, click on the NA LCS link as shown below:
 
 ![League of Legends Logo](presentation-images/data-wrangling/01.png)
@@ -28,3 +34,19 @@ Now that we know how to obtain the identifiers for each match, we can open a spr
 
 Finally, we can start the R scripting!
 
+## R Scripting for Obtaining Match Data
+As stated previously, the beginning string for the URL of the Web API for obtaining the match data JSON response is:
+
+https://acs.leagueoflegends.com/v1/stats/game/
+
+If we were to use the example match, he full string for this Web API is:
+
+https://acs.leagueoflegends.com/v1/stats/game/TRLH1/1002440062?gameHash=a3b08c115923f00d
+
+If we click on the link for this API on a browser, we should see a new tab/window that looks like this:
+
+![Example JSON response](presentation-images/data-wrangling/08.png)
+
+If we have a JSON beautifier extension installed on our browser, the respond should look something like this:
+
+![Pretty JSON response](presentation-images/data-wrangling/09.png)
