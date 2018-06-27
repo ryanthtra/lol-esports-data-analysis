@@ -230,7 +230,11 @@ get_match_combined_participant_stats_df <- function(match_team_df) {
   # Sums up a bunch of columns together 
   match_team_df <- match_team_df %>%
     group_by(teamName, teamId, win, gameNumber, duration, isTiebreaker, isPlayoff) %>%
-    summarize_at(vars(kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:goldSpent, totalMinionsKilled:wardsKilled, 'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20', 'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10', 'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), sum)
+    summarize_at(vars(kills:assists, totalDamageDealt:trueDamageDealt,
+      totalDamageDealtToChampions:goldSpent, totalMinionsKilled:wardsKilled,
+      'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20',
+      'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10',
+      'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), sum)
   return(match_team_df)
 }
 ```
