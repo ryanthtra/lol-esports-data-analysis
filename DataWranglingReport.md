@@ -2,11 +2,11 @@
 #### by Ryan Transfiguracion
 Before we start explaining the wrangling process, here are the "final" desired data frames for the NALCS 2018 Spring Split that we'll be using for later statistical analyses and models.  Click on the each link to see its corresponding CSV file:
 
-[Entire Split Match-by-match Team Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_match_totals.csv)
+[Entire Split Match-by-Match Team Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_match_totals.csv)
 
-[Entire Split Match-by-match Player Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_match_player_stats.csv)
+[Entire Split Match-by-Match Player Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_match_player_stats.csv)
 
-[Entire Split Match-by-match Champ Bans](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_champ_bans.csv)
+[Entire Split Match-by-Match Champ Bans](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_champ_bans.csv)
 
 [Regular Season Team Cumulative Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_team_totals.csv)
 
@@ -116,6 +116,8 @@ get_league_match_data_list <- function(league_matchid_df) {
   return(matchlist)
 }
 ```
+
+#### Looking Deeper into Match Data
 Now that we have match data for all 117 matches in the NALCS 2018 Spring Split, let's look at a single match:
 
 ![Single Match Data Object](presentation-images/data-wrangling/10.png)
@@ -130,6 +132,8 @@ Also, let's look at the it in preview mode:
 Before concatenating this into a cumulative data frame, this will get cleaned up in order to be useful.  The explanations are written into the code for the custom function ```get_accum_matches_teams```:
 
 ```R
+# Place this line at the top of the script file
+library(dplyr)
 nalcs_matches_teams_accum <- get_accum_matches_teams(nalcs_matches, nalcs_matchid_df)
 ```
 ```R
@@ -205,3 +209,113 @@ for (j in 1:nrow(flattened_df)) {
   }
 }
 ```
+
+Concatenating the multiple ```participants``` DFs together is very similar to when we put together the ```teams``` DFs, so we won't include a code sample here; we basically ran a for loop through all the matches data, wrangled each ```participants``` sub-DF, then used ```bind_rows()``` to add it to an accumulative DF of all the other ```participants``` DFs.  With that, we have our match-by-match player totals data set, as shown here and at the top of the report:
+
+[Entire Split Match-by-Match Player Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_match_player_stats.csv)
+
+#### Creating Match-by-Match Team Totals Dataset
+
+Now that we have the player totals data set, we can use that set to add up the totals of each player of each team of each match to create team totals for each match.  With the custom function ```get_match_combined_participant_stats_df()```, we add up the stats of the five players of one team in one match, as shown below:
+
+```R
+get_match_combined_participant_stats_df <- function(match_team_df) {
+
+  # Replace all the NAs in the "Deltas" columns with zeroes 
+  match_team_df <- match_team_df %>%
+    mutate_at(vars(contains("Deltas")), funs(replace(., is.na(.), 0)))
+
+  # Groups observations by game number and team name
+  # (the other group-by variables are used just so they can be included in the output DF)
+  # Sums up a bunch of columns together 
+  match_team_df <- match_team_df %>%
+    group_by(teamName, teamId, win, gameNumber, duration, isTiebreaker, isPlayoff) %>%
+    summarize_at(vars(kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:goldSpent, totalMinionsKilled:wardsKilled, 'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20', 'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10', 'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), sum)
+  return(match_team_df)
+}
+```
+
+As indicated in the code sample above, we encountered some ```NA```s in the ```participants``` data set.  While there are a few outliers, most of the ```NA```s occur, because some matches do not last longer than 30 minutes, so any of the ```XxxPerMinDelta.30-end``` columns do not apply to those matches.  
+
+With this new teammates-summed-up-per-match DF created, we can now join this together with the accumulated ```teams``` DF to create the ***match-by-match team totals*** dataset, as shown in this code snippet:
+
+```R
+# Joins the "teams" DF and the "participants combined" DF together
+nalcs_matches_tpc_accum <- nalcs_matches_participants_combined_accum %>%
+  inner_join(nalcs_matches_teams_accum)
+```
+And here is the link to the dataset (same as at the top of the report): [Entire Split Match-by-Match Team Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_match_totals.csv)
+
+#### Creating Regular Season Team Totals Dataset
+With the new ***match-by-match team totals*** dataset, we can add up the stats of each team across an entire regular season.
+
+First, we filter out the regular season matches:
+```R
+# Filter for just regular season games
+league_regseason_tpc_df <- league_matches_tpc_accum %>%
+  filter(isTiebreaker == FALSE & isPlayoff == FALSE)
+```
+
+Then, we group the rows of the DF by team and add up the numerical stats:
+```R
+league_regseason_team_totals_df <-
+# First parentheses group: sums of stats by team
+(league_regseason_tpc_df %>%
+  group_by(teamName) %>%
+  summarise_at(vars(duration, kills:wardsKilled, towerKills:riftHeraldKills,
+    'creepsPerMinDeltas.10-20', 'creepsPerMinDeltas.0-10', 'xpPerMinDeltas.10-20',
+    'xpPerMinDeltas.0-10', 'goldPerMinDeltas.10-20', 'goldPerMinDeltas.0-10',
+    'damageTakenPerMinDeltas.10-20', 'damageTakenPerMinDeltas.0-10'), sum)) %>%
+    ...
+```
+
+Then, we continue by tallying most of the TRUE/FALSE columns:
+```R
+# Include tidyr package at top of script file so we can use spread(
+library(tidyr)
+  ...
+  # More parenthesis groups: tallying first-objective columns
+  inner_join(league_regseason_tpc_df %>%
+    group_by(teamName, firstBlood) %>%
+    tally() %>% spread(firstBlood, n) %>% select('TRUE') %>% 
+    rename('firstBloods' = 'TRUE')) %>%
+  inner_join(league_regseason_tpc_df %>%
+    group_by(teamName, firstTower) %>%
+    tally() %>% spread(firstTower, n) %>% select('TRUE') %>% 
+    rename('firstTowers' = 'TRUE')) %>%
+  ...
+```
+
+Then, we tally the wins and losses:
+```R
+  ...
+  # Last parentheses group: tallying wins and losses by team
+  inner_join(league_regseason_tpc_df %>%
+    group_by(teamName, win) %>%
+    tally() %>%
+    spread(win, n) %>% # "transposes" the DF so that TRUE (win) and FALSE (loss) are the column names
+    rename('losses' = 'FALSE', 'wins' = 'TRUE')) # renames the T/F columns to W/L
+```
+
+Finally, we re-order the columns in this big joined DF:
+```R
+# Reordering columns - teamName, wins, losses, <everything else>
+league_regseason_team_totals_df <- league_regseason_team_totals_df[, c(1, 56, 55, 2:54)]
+```
+
+We now have the ***regular season team totals*** dataset: [Regular Season Team Cumulative Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_team_totals.csv)
+
+#### Creating Regular Season Opponent Totals Dataset
+Here we go back to using the ***match-by-match team totals*** dataset, and then, for each match, we just swap the team names by using ***dplyr***'s ```lead()``` and ```lag()``` functions:
+```R
+# Get opponent's data (just swapping the team names of each game in the previous DF)
+nalcs_matches_tpc_opps_accum <- nalcs_matches_tpc_accum %>%
+  group_by(gameNumber) %>%
+  mutate(teamName = ifelse(teamId == "Blue", 
+    as.character(lead(teamName)), 
+    as.character(lag(teamName))
+  ))
+```
+Then, we just use the same procudure we used to create the ***regular season team totals*** data set.  Here's the link to the ***regular season opponent totals*** dataset:
+
+[Regular Season Opposing Team Cumulative Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_oppsteam_totals.csv)
