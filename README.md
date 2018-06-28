@@ -1,5 +1,6 @@
 # lol-esports-data-analysis
 Analysis, insights, and modeling for various League of Legends eSports leagues for the 2018 Spring Split -- a Springboard Intro to Data Science capstone project
+#### by Ryan Transfiguracion
 
 ![League of Legends Logo](presentation-images/League-of-Legends-logo.png)
 

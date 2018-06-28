@@ -333,6 +333,9 @@ get_league_regseason_team_avgs <- function(league_matches_tpc_accum, split_bluer
     league_regseason_team_totals_df <-
     (league_regseason_tpc_df %>%
     group_by(teamName, teamId) %>%
+    tally()) %>% 
+    inner_join(league_regseason_tpc_df %>%
+    group_by(teamName, teamId) %>%
     summarise_at(vars(win, duration, kills:riftHeraldKills), mean))
   } else {
     league_regseason_team_totals_df <-
@@ -508,12 +511,27 @@ nalcs_matches_tpc_accum <- nalcs_matches_participants_combined_accum %>%
 nalcs_matches_tpc_opps_accum <- nalcs_matches_tpc_accum %>%
   group_by(gameNumber) %>%
   mutate(teamName = ifelse(teamId == "Blue", as.character(lead(teamName)), as.character(lag(teamName))))
-
 nalcs_regseason_team_totals_df <- get_league_regseason_team_totals(nalcs_matches_tpc_accum)
 nalcs_regseason_teamopps_totals_df <- get_league_regseason_team_totals(nalcs_matches_tpc_opps_accum)
+# Rename the columns of regular season team opponents totals DF
+nalcs_regseason_teamopps_totals_df <- nalcs_regseason_teamopps_totals_df %>%
+  rename_at(vars(wins:firstDragons), function(x) {
+    return (paste("O", x, sep="_"))
+  })
+# Make a differential DF
+nalcs_regseason_team_totaldiffs_df <- data.frame(teamName = nalcs_regseason_team_totals_df$teamName, wins = nalcs_regseason_team_totals_df$wins, losses = nalcs_regseason_team_totals_df$losses, totalDuration = nalcs_regseason_team_totals_df$duration, nalcs_regseason_team_totals_df[5] - nalcs_regseason_teamopps_totals_df[5], nalcs_regseason_team_totals_df[7:56] - nalcs_regseason_teamopps_totals_df[7:56])
+
 nalcs_regseason_team_bluered_totals_df <- get_league_regseason_team_totals(nalcs_matches_tpc_accum, split_bluered = TRUE)
 nalcs_regseason_team_avgs_df <- get_league_regseason_team_avgs(nalcs_matches_tpc_accum)
 nalcs_regseason_teamopps_avgs_df <- get_league_regseason_team_avgs(nalcs_matches_tpc_opps_accum)
+# Rename the columns of regular season team opponents averages DF
+nalcs_regseason_teamopps_avgs_df <- nalcs_regseason_teamopps_avgs_df %>%
+  rename_at(vars(win:riftHeraldKills), function(x) {
+    return (paste("O", x, sep="_"))
+  })
+# Make an average differential DF
+nalcs_regseason_team_avgdiffs_df <- data.frame(teamName = nalcs_regseason_team_avgs_df$teamName, winPct = nalcs_regseason_team_avgs_df$win, duration = nalcs_regseason_team_avgs_df$duration, nalcs_regseason_team_avgs_df[4] - nalcs_regseason_teamopps_avgs_df[4], nalcs_regseason_team_avgs_df[6:56] - nalcs_regseason_teamopps_avgs_df[6:56])
+
 nalcs_regseason_team_bluered_avgs_df <- get_league_regseason_team_avgs(nalcs_matches_tpc_accum, split_bluered = TRUE)
 nalcs_regseason_summoner_avgs_df <- get_league_regseason_summoner_avgs(nalcs_matches_participants_accum)
 nalcs_regseason_summoner_totals_df <- get_league_regseason_summoner_totals(nalcs_matches_participants_accum)

@@ -309,6 +309,17 @@ league_regseason_team_totals_df <- league_regseason_team_totals_df[, c(1, 56, 55
 
 We now have the ***regular season team totals*** dataset: [Regular Season Team Cumulative Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_team_totals.csv)
 
+#### Creating Regular Season Team Averages Per Match Dataset
+With the ***match-by-match team totals*** dataset, we can compute the mean stats of each team across an entire regular season.  This is requires much less code than computing the ***regular season team totals*** dataset.  First, we filter out the regular season matches.  Then, we group the DF by team and then summarize the columns we need using the mean function:
+
+```R
+league_regseason_team_avgs_fg <- league_regseason_tpc_df %>%
+  group_by(teamName) %>%
+  summarise_at(vars(win, duration, kills:riftHeraldKills), mean)
+```
+Here is the resulting dataset: [Regular Season Team Averages](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_team_avgs.csv)
+
+
 #### Creating Regular Season Opponent Totals Dataset
 Here we go back to using the ***match-by-match team totals*** dataset, and then, for each match, we just swap the team names by using ***dplyr***'s ```lead()``` and ```lag()``` functions:
 ```R
