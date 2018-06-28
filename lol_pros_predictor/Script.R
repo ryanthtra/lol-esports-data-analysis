@@ -333,7 +333,7 @@ get_league_regseason_team_avgs <- function(league_matches_tpc_accum, split_bluer
     league_regseason_team_totals_df <-
     (league_regseason_tpc_df %>%
     group_by(teamName, teamId) %>%
-    tally()) %>% 
+    tally() %>% rename(games = n)) %>%
     inner_join(league_regseason_tpc_df %>%
     group_by(teamName, teamId) %>%
     summarise_at(vars(win, duration, kills:riftHeraldKills), mean))

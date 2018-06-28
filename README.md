@@ -17,11 +17,13 @@ Firstly, I will provide analyses of accumulative match data for the 2018 Spring 
 
 Secondly, I will construct a predictive (linear regression) model trained from the North American League Championship Series (NALCS) 2018 Spring Split regular season data to see if this model can accurately predict the win-loss records of the teams in the European League Championship Series (EULCS) 2018 Spring Split regular season.
 
-Finally, I will construct a clustering (hierarchical or k-means) model to see if it can correctly classify the team roles of the individual players in these eSports leagues.  Currently, there are five distinct roles for the five players on each team in a match: Top Laner, Jungler, Mid Laner, Bottom Lane Carry (often called Attack Damage Carry, or ADC for short), and Support.  
+Finally, I will construct a clustering (hierarchical or k-means) model to see if it can correctly classify the team roles of the individual players and the champions they play in these eSports leagues.  Currently, there are five distinct roles for the five players on each team in a match: Top Laner, Jungler, Mid Laner, Bottom Lane Carry (often called Attack Damage Carry, or ADC for short), and Support.  
 
 ## Who is your client and why do they care about this problem? In other words, what will your client DO or DECIDE based on your analysis that they wouldn’t have otherwise?
 
 The League of Legends community at large, fans of LoL eSports, and sports/eSports stats junkies would likely enjoy seeing a statistics and some analytics for these leagues.  Riot Games and other LoL eSports league sanctioners could publish such leaderboard stats on their own websites.
+
+The clustering model (for classifying players'/champions' team roles) that will be made could be used by Riot Games for when they are creating new champions.  While designing a new champion and its traits and abilities, they can test that champion out in matches, compile its performance data, plug that data into the model, and see if the model classifies the champion into the role they intended it to be in.
 
 ## What data are you going to use for this? How will you acquire this data?
 
