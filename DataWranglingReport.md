@@ -1,6 +1,6 @@
 # Data Wrangling Report
 #### by Ryan Transfiguracion
-Before we start explaining the wrangling process, here are the "final" desired data frames for the NALCS 2018 Spring Split that we'll be using for later statistical analyses and models.  Click on the each link to see its corresponding CSV file:
+Before we start explaining the wrangling process, here are the "final" desired data frames for the NALCS 2018 Spring Split that we'll be using for later statistical analyses and models.  Actually, the first three datasets will be the "templates" from which all future analyses and datasets will derive, such as the next three datasets on the list.  Click on the each link to see its corresponding CSV file:
 
 [Entire Split Match-by-Match Team Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_match_totals.csv)
 
