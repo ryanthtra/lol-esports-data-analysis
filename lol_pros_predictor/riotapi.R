@@ -1,7 +1,7 @@
 prefix_domain <- "https://na1.api.riotgames.com"
 
 # This api_token will eventually go in a separate file which will be ignored by git.
-#api_token <- "RGAPI-afa7ca6b-3ccd-465d-90c4-51616b4fabb8"
+#api_token <- ""
 
 
 get_summoner_by_name <- function(str_name) {
