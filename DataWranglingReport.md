@@ -10,6 +10,8 @@ Before we start explaining the wrangling process, here are the "final" desired d
 
 [Regular Season Team Cumulative Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_team_totals.csv)
 
+[Regular Season Team Averages](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_team_avgs.csv)
+
 [Regular Season Opposing Team Cumulative Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_oppsteam_totals.csv)
 
 
@@ -331,6 +333,16 @@ nalcs_matches_tpc_opps_accum <- nalcs_matches_tpc_accum %>%
     as.character(lag(teamName))
   ))
 ```
-Then, we just use the same procudure we used to create the ***regular season team totals*** data set.  Here's the link to the ***regular season opponent totals*** dataset:
+Then, we just use the same procudure we used to create the ***regular season team totals*** data set.
 
-[Regular Season Opposing Team Cumulative Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_oppsteam_totals.csv)
+Finally, we rename most of the columns of this data frame so they have an ```O_``` prefix:
+
+```R
+# Rename the columns of regular season team opponents totals DF
+nalcs_regseason_teamopps_totals_df <- nalcs_regseason_teamopps_totals_df %>%
+  rename_at(vars(wins:firstDragons), function(x) {
+    return (paste("O", x, sep="_"))
+  })
+```
+
+Here's the link to the ***regular season opponent totals*** dataset: [Regular Season Opposing Team Cumulative Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_regseason_oppsteam_totals.csv)
