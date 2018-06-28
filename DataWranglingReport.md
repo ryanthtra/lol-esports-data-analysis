@@ -2,7 +2,7 @@
 #### by Ryan Transfiguracion
 Before we start explaining the wrangling process, here are the "final" desired data frames for the NALCS 2018 Spring Split that we'll be using for later statistical analyses and models.  Actually, the first three datasets will be the "templates" from which all future analyses and datasets will derive, such as the next three datasets on the list.  Click on the each link to see its corresponding CSV file:
 
-[Entire Split Match-by-Match Team Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_match_team_stats)
+[Entire Split Match-by-Match Team Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_match_team_stats.csv)
 
 [Entire Split Match-by-Match Player Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_match_player_stats.csv)
 
@@ -250,7 +250,7 @@ With this new teammates-summed-up-per-match DF created, we can now join this tog
 nalcs_matches_tpc_accum <- nalcs_matches_participants_combined_accum %>%
   inner_join(nalcs_matches_teams_accum)
 ```
-And here is the link to the dataset (same as at the top of the report): [Entire Split Match-by-Match Player Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_match_player_stats.csv)
+And here is the link to the dataset (same as at the top of the report): [Entire Split Match-by-Match Team Totals](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_match_team_stats.csv)
 
 #### Creating Regular Season Team Totals Dataset
 With the new ***match-by-match team totals*** dataset, we can add up the stats of each team across an entire regular season.
