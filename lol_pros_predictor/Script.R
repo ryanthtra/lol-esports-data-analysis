@@ -280,33 +280,23 @@ remove(champions_df)
 # NA LCS data (Spring Split 2018)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# NA LCS 2018 Spring Split -- Regular Season and Playoffs
-nalcs_matchid_df <- read.csv("gameid_data/NALCS_Spring2018.csv")
+## NA LCS 2018 Spring Split -- Regular Season and Playoffs
+#nalcs_matchid_df <- read.csv("gameid_data/NALCS_Spring2018.csv")
+#nalcs_matches <- get_league_match_data_list(nalcs_matchid_df)
 
-nalcs_matches <- get_league_match_data_list(nalcs_matchid_df)
+##nalcs_single_match <- get_acs_match_by_matchid(nalcs_matchid_df$Region.ID[[1]], nalcs_matchid_df$Game.ID[[1]], chr_game_hash = nalcs_matchid_df$Hash.ID[[1]])
+##nalcs_single_match$teams["teamName"] <- unname(unlist(c(nalcs_matchid_df[1, c("Blue.Team", "Red.Team")])))
 
-nalcs_single_match <- get_acs_match_by_matchid(nalcs_matchid_df$Region.ID[[1]], nalcs_matchid_df$Game.ID[[1]], chr_game_hash = nalcs_matchid_df$Hash.ID[[1]])
-nalcs_single_match$teams["teamName"] <- unname(unlist(c(nalcs_matchid_df[1, c("Blue.Team", "Red.Team")])))
+#nalcs_matches_teams_accum <- get_accum_matches_teams(nalcs_matches, nalcs_matchid_df)
+#nalcs_matches_bans_accum <- get_accum_matches_bans(nalcs_matches, nalcs_matchid_df)
+#nalcs_matches_participants_accum <- get_accum_matches_participants(nalcs_matches, nalcs_matchid_df)
+#nalcs_matches_participants_accum <- nalcs_matches_participants_accum %>%
+  #mutate_at(vars(contains("Deltas")), funs(replace(., is.na(.), 0)))
+#nalcs_matches_participants_combined_accum <- get_accum_matches_participants(nalcs_matches, nalcs_matchid_df, combine_teammate_stats = TRUE)
 
-# Get the "teams" data frame, which contains who won/lost, first blood, first baron, etc.
-# Will need to wrangle so that team names are in each row, "Team 100/200" is changed to Blue/Red,
-# and each entry in the list is concatenated into a large list, in order to do data visualization.
-
-nalcs_matches_teams_accum <- get_accum_matches_teams(nalcs_matches, nalcs_matchid_df)
-nalcs_matches_bans_accum <- get_accum_matches_bans(nalcs_matches, nalcs_matchid_df)
-nalcs_matches_participants_accum <- get_accum_matches_participants(nalcs_matches, nalcs_matchid_df)
-nalcs_matches_participants_accum <- nalcs_matches_participants_accum %>%
-  mutate_at(vars(contains("Deltas")), funs(replace(., is.na(.), 0)))
-nalcs_matches_participants_combined_accum <- get_accum_matches_participants(nalcs_matches, nalcs_matchid_df, combine_teammate_stats = TRUE)
-
-# Joins the "teams" DF and the "participants combined" DF together
-nalcs_matches_tpc_accum <- nalcs_matches_participants_combined_accum %>%
-  inner_join(nalcs_matches_teams_accum)
-
-
-
-
-
+## Joins the "teams" DF and the "participants combined" DF together
+#nalcs_matches_tpc_accum <- nalcs_matches_participants_combined_accum %>%
+  #inner_join(nalcs_matches_teams_accum)
 
 
 
@@ -314,23 +304,18 @@ nalcs_matches_tpc_accum <- nalcs_matches_participants_combined_accum %>%
 # EU LCS data (Spring Split 2018)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-## EU LCS 2018 Spring Split -- Regular Season and Playoffs
-#eulcs_matchid_df <- read.csv("EULCS_Spring2018.csv")
+# EU LCS 2018 Spring Split -- Regular Season and Playoffs
+eulcs_matchid_df <- read.csv("gameid_data/EULCS_Spring2018.csv")
 
-#eulcs_matches <- get_league_match_data_list(eulcs_matchid_df)
-#eulcs_matches_teams_accum <- get_accum_matches_teams(eulcs_matches, eulcs_matchid_df)
-#eu_bluered_avg_stats <- eulcs_matches_teams_accum %>%
-#group_by(teamId) %>%
-#summarise_each(funs(mean), towerKillAvg = towerKills, inhibitorKillAvg = inhibitorKills, baronKillAvg = baronKills, dragonKillAvg = dragonKills, riftHeraldKillAvg = riftHeraldKills)
-#eu_bluered_wins <- eulcs_matches_teams_accum %>%
-#group_by(teamId, win) %>%
-#filter(win == "Win") %>%
-#count(win)
-#eu_bluered_avgs_by_team <- eulcs_matches_teams_accum %>%
-#group_by(teamName, teamId) %>%
-#summarise_each(funs(mean), towerKillAvg = towerKills, inhibitorKillAvg = inhibitorKills, baronKillAvg = baronKills, dragonKillAvg = dragonKills, riftHeraldKillAvg = riftHeraldKills)
-#eu_bluered_winpct_by_team <- get_league_bluered_winpct_by_team(eulcs_matches_teams_accum)
-
+eulcs_matches <- get_league_match_data_list(eulcs_matchid_df)
+eulcs_matches_teams_accum <- get_accum_matches_teams(eulcs_matches, eulcs_matchid_df)
+eulcs_matches_bans_accum <- get_accum_matches_bans(eulcs_matches, eulcs_matchid_df)
+eulcs_matches_participants_accum <- get_accum_matches_participants(eulcs_matches, eulcs_matchid_df)
+eulcs_matches_participants_accum <- eulcs_matches_participants_accum %>%
+  mutate_at(vars(contains("Deltas")), funs(replace(., is.na(.), 0)))
+eulcs_matches_participants_combined_accum <- get_accum_matches_participants(eulcs_matches, eulcs_matchid_df, combine_teammate_stats = TRUE)
+eulcs_matches_tpc_accum <- eulcs_matches_participants_combined_accum %>%
+  inner_join(eulcs_matches_teams_accum)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # MSI 2018 data
