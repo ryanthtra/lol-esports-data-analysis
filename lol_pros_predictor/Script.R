@@ -305,17 +305,17 @@ remove(champions_df)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # EU LCS 2018 Spring Split -- Regular Season and Playoffs
-eulcs_matchid_df <- read.csv("gameid_data/EULCS_Spring2018.csv")
+#eulcs_matchid_df <- read.csv("gameid_data/EULCS_Spring2018.csv")
 
-eulcs_matches <- get_league_match_data_list(eulcs_matchid_df)
-eulcs_matches_teams_accum <- get_accum_matches_teams(eulcs_matches, eulcs_matchid_df)
-eulcs_matches_bans_accum <- get_accum_matches_bans(eulcs_matches, eulcs_matchid_df)
-eulcs_matches_participants_accum <- get_accum_matches_participants(eulcs_matches, eulcs_matchid_df)
-eulcs_matches_participants_accum <- eulcs_matches_participants_accum %>%
-  mutate_at(vars(contains("Deltas")), funs(replace(., is.na(.), 0)))
-eulcs_matches_participants_combined_accum <- get_accum_matches_participants(eulcs_matches, eulcs_matchid_df, combine_teammate_stats = TRUE)
-eulcs_matches_tpc_accum <- eulcs_matches_participants_combined_accum %>%
-  inner_join(eulcs_matches_teams_accum)
+#eulcs_matches <- get_league_match_data_list(eulcs_matchid_df)
+#eulcs_matches_teams_accum <- get_accum_matches_teams(eulcs_matches, eulcs_matchid_df)
+#eulcs_matches_bans_accum <- get_accum_matches_bans(eulcs_matches, eulcs_matchid_df)
+#eulcs_matches_participants_accum <- get_accum_matches_participants(eulcs_matches, eulcs_matchid_df)
+#eulcs_matches_participants_accum <- eulcs_matches_participants_accum %>%
+  #mutate_at(vars(contains("Deltas")), funs(replace(., is.na(.), 0)))
+#eulcs_matches_participants_combined_accum <- get_accum_matches_participants(eulcs_matches, eulcs_matchid_df, combine_teammate_stats = TRUE)
+#eulcs_matches_tpc_accum <- eulcs_matches_participants_combined_accum %>%
+  #inner_join(eulcs_matches_teams_accum)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # MSI 2018 data
