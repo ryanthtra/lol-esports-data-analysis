@@ -33,10 +33,10 @@ barplot(table(nc$Best.n[1,]),
   xlab = "Number of Clusters", ylab = "Number of Criteria",
   main = "Number of Clusters Chosen by 26 Criteria")
 
+set.seed(1234)
 nalcs_fit.km <- kmeans(nalcs_km_data, 5, iter.max = 1000)
-
-clusplot(nalcs_km_data, fit.km$cluster, main = "Clusplot")
-table(fit.km$cluster, nalcs_season_summoner_avgs$teamRole)
+clusplot(nalcs_km_data, nalcs_fit.km$cluster, main = "Clusplot")
+table(nalcs_fit.km$cluster, nalcs_season_summoner_avgs$teamRole)
 
 # Clustering EU LCS 
 eulcs_season_summoner_avgs <- read.csv("datasets/eulcs/eulcs_spring2018_season_summoner_avgs.csv") %>%
@@ -47,6 +47,7 @@ eulcs_km_data <- eulcs_season_summoner_avgs %>%
   select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, visionScore, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
   scale()
 
+set.seed(1234)
 eulcs_fit.km <- kmeans(eulcs_km_data, 5, iter.max = 1000)
 clusplot(eulcs_km_data, eulcs_fit.km$cluster, main = "Clusplot")
 table(eulcs_fit.km$cluster, eulcs_season_summoner_avgs$teamRole)
