@@ -10,7 +10,7 @@ nalcs_season_summoner_avgs <- read.csv("datasets/nalcs/nalcs_spring2018_season_s
 
 # Remove columns 1:6, 8, 10, 30:33, 41, 44:56
 nalcs_km_data <- nalcs_season_summoner_avgs %>%
-  select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, visionScore, totalDamageTaken,  neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
+  select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken,  neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
   scale()
 
 
@@ -44,7 +44,7 @@ eulcs_season_summoner_avgs <- read.csv("datasets/eulcs/eulcs_spring2018_season_s
   filter(wins + losses >= 6)
 
 eulcs_km_data <- eulcs_season_summoner_avgs %>%
-  select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, visionScore, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
+  select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
   scale()
 
 set.seed(1234)
