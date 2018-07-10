@@ -623,3 +623,36 @@ nalcs_plot_rsteam_totaldiffs +
 eulcs_plot_rsteam_totaldiffs +
   geom_point(mapping = aes(x = wins, y = assists, color = teamName), size = 3) +
   geom_smooth(aes(x = wins, y = assists), method = "lm", se = T)
+
+
+# Plots with gathered dataset and plotting with facet_wrap
+library(tidyr)
+library(ggplot2)
+library(dplyr)
+nalcs_season_summoner_avgs <- read.csv("datasets/nalcs/nalcs_spring2018_season_summoner_avgs.csv") %>%
+  select(-X) %>%
+  filter(wins + losses >= 6)
+nalcs_season_summoner_avgs_gathered <- nalcs_season_summoner_avgs %>%
+  gather(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled, key = "varName", value = "valuePerGame")
+nalcs_plot_player_avgs <- nalcs_season_summoner_avgs_gathered %>%
+  filter(wins + losses >= 6) %>%
+  ggplot()
+nalcs_plot_player_avgs +
+  geom_boxplot(mapping = aes(x = teamRole, y = valuePerGame, fill = teamRole), size = 1.25, alpha = .6) +
+  geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = valuePerGame, color = teamRole)) +
+  facet_wrap(~ varName, scales = "free", ncol = 3) +
+  labs(
+    title = "Values per Game Box Plot, NALCS 2018 Spring Split Regular Season",
+    subtitle = "Distribution Across Team Roles")
+nalcs_plot_player_avgs +
+  geom_histogram(mapping = aes(x = valuePerGame, y = ..density.., fill = teamRole), color = "black", alpha = .6) +
+  facet_wrap(~varName, scales = "free", ncol = 2) +
+  labs(
+    title = "Values Per Game Histogram, NALCS 2018 Spring Split Regular Season",
+    subtitle = "Distribution of Values")
+nalcs_plot_player_avgs +
+  geom_density(mapping = aes(x = valuePerGame, color = teamRole, fill = teamRole), alpha = .3, size = 1)
+  facet_wrap(~varName, scales = "free", ncol = 2) +
+  labs(
+    title = "Values Per Game Density Plot, NALCS 2018 Spring Split Regular Season",
+    subtitle = "Distribution of Values")

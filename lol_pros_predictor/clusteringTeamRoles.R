@@ -50,4 +50,4 @@ eulcs_km_data <- eulcs_season_summoner_avgs %>%
 set.seed(1234)
 eulcs_fit.km <- kmeans(eulcs_km_data, 5, iter.max = 1000)
 clusplot(eulcs_km_data, eulcs_fit.km$cluster, main = "Clusplot")
-table(eulcs_fit.km$cluster, eulcs_season_summoner_avgs$teamRole)
+table(eulcs_season_summoner_avgs$teamRole, eulcs_fit.km$cluster)
