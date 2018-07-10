@@ -1,11 +1,16 @@
 library(dplyr)
 library(tidyr)
+library(ggplot2)
 
 # The "template" datasets created from Script.R
 nalcs_matches_champ_bans <- read.csv("datasets/nalcs/nalcs_spring2018_champ_bans.csv")
 nalcs_matches_player_stats <- read.csv("datasets/nalcs/nalcs_spring2018_match_player_stats.csv")
 nalcs_matches_team_stats <- read.csv("datasets/nalcs/nalcs_spring2018_match_team_stats.csv")
 
+# EU LCS datasets
+eulcs_matches_champ_bans <- read.csv("datasets/eulcs/eulcs_spring2018_champ_bans.csv")
+eulcs_matches_player_stats <- read.csv("datasets/eulcs/eulcs_spring2018_match_player_stats.csv")
+eulcs_matches_team_stats <- read.csv("datasets/eulcs/eulcs_spring2018_match_team_stats.csv")
 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #
@@ -88,7 +93,7 @@ get_league_regseason_team_totals <- function(league_matches_team_stats, split_bl
 }
 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-get_league_regseason_team_avgs <- function(league_matches_team_stats, split_bluered = FALSE) {
+get_league_regseason_team_avgs <- function(league_matches_team_stats, split_bluered = FALSE, split_winloss = FALSE) {
   # Filter for just regular season games
   league_regseason_tpc_df <- league_matches_team_stats %>%
   filter(isTiebreaker == FALSE & isPlayoff == FALSE)
@@ -112,26 +117,76 @@ get_league_regseason_team_avgs <- function(league_matches_team_stats, split_blue
 
 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-get_league_regseason_summoner_avgs <- function(league_matches_player_stats) {
+get_league_season_summoner_avgs <- function(league_matches_player_stats, only_regseason = TRUE, split_winloss = FALSE, split_bluered = FALSE) {
   # Filter for just regular season games
-  league_regseason_participants_accum <- league_matches_player_stats %>%
-    filter(isTiebreaker == FALSE & isPlayoff == FALSE)
+  league_season_participants_accum <- league_matches_player_stats
+  if (only_regseason == TRUE) {
+    league_season_participants_accum <- league_matches_player_stats %>%
+      filter(isTiebreaker == FALSE & isPlayoff == FALSE)
+  } 
 
   # Create avg stats DF groups by lane and role
-  league_regseason_participants_accum <-
-  (league_regseason_participants_accum %>%
-  group_by(teamName, summonerName, teamRole) %>%
-  summarize_at(vars(duration, kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:firstBloodKill, firstTowerKill:firstInhibitorAssist, 'creepsPerMinDeltas.10.20', 'creepsPerMinDeltas.0.10', 'xpPerMinDeltas.10.20', 'xpPerMinDeltas.0.10', 'goldPerMinDeltas.10.20', 'goldPerMinDeltas.0.10', 'damageTakenPerMinDeltas.10.20', 'damageTakenPerMinDeltas.0.10'), mean)) %>%
-  # Tallying wins and losses by summoner name
-  inner_join(league_regseason_participants_accum %>%
+  if (split_winloss == FALSE && split_bluered == FALSE) {
+
+    league_season_participants_accum <-
+    (league_season_participants_accum %>%
+    group_by(teamName, summonerName, teamRole) %>%
+    summarize_at(vars(duration, kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:firstBloodKill, firstTowerKill:firstInhibitorAssist, 'creepsPerMinDeltas.10.20', 'creepsPerMinDeltas.0.10', 'xpPerMinDeltas.10.20', 'xpPerMinDeltas.0.10', 'goldPerMinDeltas.10.20', 'goldPerMinDeltas.0.10', 'damageTakenPerMinDeltas.10.20', 'damageTakenPerMinDeltas.0.10'), mean)) %>%
+    # Tallying wins and losses by summoner name
+    inner_join(league_season_participants_accum %>%
       group_by(teamName, summonerName, teamRole, win) %>%
       tally() %>%
       spread(win, n) %>% # "transposes" the DF so that TRUE (win) and FALSE (loss) are the column names
       rename('losses' = 'FALSE', 'wins' = 'TRUE') %>% # renames the T/F columns to W/L
       mutate_at(vars(wins, losses), funs(replace(., is.na(.), 0))))
 
-  # Reordering columns - teamName, wins, losses, <everything else>
-  league_regseason_participants_accum <- league_regseason_participants_accum[, c(1, 2, 55, 54, 3:53)]
+    # Adding KDA Ratio column
+    league_season_participants_accum <- league_season_participants_accum %>%
+      mutate(KDA = (kills + assists) / deaths)
+
+    # Reordering columns - teamName, wins, losses, <everything else>
+    league_season_participants_accum <- league_season_participants_accum[, c(1, 2, 55, 54, 3:7, 56, 8:53)]
+
+  } else if(split_winloss == TRUE && split_bluered == FALSE) {
+
+    league_season_participants_accum <-
+    (league_season_participants_accum %>%
+    group_by(teamName, summonerName, teamRole, win) %>%
+    summarize_at(vars(duration, kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:firstBloodKill, firstTowerKill:firstInhibitorAssist, 'creepsPerMinDeltas.10.20', 'creepsPerMinDeltas.0.10', 'xpPerMinDeltas.10.20', 'xpPerMinDeltas.0.10', 'goldPerMinDeltas.10.20', 'goldPerMinDeltas.0.10', 'damageTakenPerMinDeltas.10.20', 'damageTakenPerMinDeltas.0.10'), mean)) %>%
+    inner_join(league_season_participants_accum %>%
+      group_by(teamName, summonerName, teamRole, win) %>%
+      tally())
+
+    # Reordering columns 
+    league_season_participants_accum <- league_season_participants_accum[, c(1:4, 55, 5:54)]
+
+  } else if (split_winloss == FALSE && split_bluered == TRUE) {
+
+    league_season_participants_accum <-
+    (league_season_participants_accum %>%
+    group_by(teamName, summonerName, teamRole, teamId) %>%
+    summarize_at(vars(duration, kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:firstBloodKill, firstTowerKill:firstInhibitorAssist, 'creepsPerMinDeltas.10.20', 'creepsPerMinDeltas.0.10', 'xpPerMinDeltas.10.20', 'xpPerMinDeltas.0.10', 'goldPerMinDeltas.10.20', 'goldPerMinDeltas.0.10', 'damageTakenPerMinDeltas.10.20', 'damageTakenPerMinDeltas.0.10'), mean)) %>%
+    inner_join(league_season_participants_accum %>%
+      group_by(teamName, summonerName, teamRole, teamId) %>%
+      tally())
+
+    # Reordering columns 
+    league_season_participants_accum <- league_season_participants_accum[, c(1:4, 55, 5:54)]
+
+  } else {
+
+    league_season_participants_accum <-
+    (league_season_participants_accum %>%
+    group_by(teamName, summonerName, teamRole, teamId, win) %>%
+    summarize_at(vars(duration, kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:firstBloodKill, firstTowerKill:firstInhibitorAssist, 'creepsPerMinDeltas.10.20', 'creepsPerMinDeltas.0.10', 'xpPerMinDeltas.10.20', 'xpPerMinDeltas.0.10', 'goldPerMinDeltas.10.20', 'goldPerMinDeltas.0.10', 'damageTakenPerMinDeltas.10.20', 'damageTakenPerMinDeltas.0.10'), mean)) %>%
+    inner_join(league_season_participants_accum %>%
+      group_by(teamName, summonerName, teamRole, teamId, win) %>%
+      tally())
+
+    # Reordering columns 
+    #league_season_participants_accum <- league_season_participants_accum[, c(1:4, 55, 5:54)]
+  }
+
 }
 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -220,6 +275,130 @@ get_league_regseason_summoner_totals <- function(league_matches_player_stats, sp
 }
 
 
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+get_league_season_champion_avgs <- function(league_matches_player_stats, split_winloss = FALSE, split_bluered = FALSE) {
+  ## Filter for just regular season games
+  #league_regseason_participants_accum <- league_matches_player_stats %>%
+    #filter(isTiebreaker == FALSE & isPlayoff == FALSE)
+
+  # Create avg stats DF groups by lane and role
+  if (split_winloss == FALSE && split_bluered == FALSE) {
+
+    league_matches_player_stats <-
+    (league_matches_player_stats %>%
+    group_by(name, teamRole) %>%
+    summarize_at(vars(duration, kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:firstBloodKill, firstTowerKill:firstInhibitorAssist, 'creepsPerMinDeltas.10.20', 'creepsPerMinDeltas.0.10', 'xpPerMinDeltas.10.20', 'xpPerMinDeltas.0.10', 'goldPerMinDeltas.10.20', 'goldPerMinDeltas.0.10', 'damageTakenPerMinDeltas.10.20', 'damageTakenPerMinDeltas.0.10'), mean)) %>%
+    # Tallying wins and losses by summoner name
+    inner_join(league_matches_player_stats %>%
+      group_by(name, teamRole, win) %>%
+      tally() %>%
+      spread(win, n) %>% # "transposes" the DF so that TRUE (win) and FALSE (loss) are the column names
+      rename('losses' = 'FALSE', 'wins' = 'TRUE') %>% # renames the T/F columns to W/L
+      mutate_at(vars(wins, losses), funs(replace(., is.na(.), 0))))
+
+    # Adding KDA Ratio column
+    league_matches_player_stats <- league_matches_player_stats %>%
+      mutate(KDA = (kills + assists) / deaths)
+
+    # Reordering columns - teamName, wins, losses, <everything else>
+    league_matches_player_stats <- league_matches_player_stats[, c(1, 2, 54, 53, 3:6, 55, 7:52)]
+
+  } else if (split_winloss == TRUE && split_bluered == FALSE) {
+
+    league_matches_player_stats <-
+    (league_matches_player_stats %>%
+    group_by(name, teamRole, win) %>%
+    summarize_at(vars(duration, kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:firstBloodKill, firstTowerKill:firstInhibitorAssist, 'creepsPerMinDeltas.10.20', 'creepsPerMinDeltas.0.10', 'xpPerMinDeltas.10.20', 'xpPerMinDeltas.0.10', 'goldPerMinDeltas.10.20', 'goldPerMinDeltas.0.10', 'damageTakenPerMinDeltas.10.20', 'damageTakenPerMinDeltas.0.10'), mean)) %>%
+    inner_join(league_matches_player_stats %>%
+      group_by(name, teamRole, win) %>%
+      tally())
+
+    # Reordering columns 
+    league_matches_player_stats <- league_matches_player_stats[, c(1:4, 55, 5:54)]
+
+  } else if (split_winloss == FALSE && split_bluered == TRUE) {
+
+    league_matches_player_stats <-
+    (league_matches_player_stats %>%
+    group_by(name, teamRole, teamId) %>%
+    summarize_at(vars(duration, kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:firstBloodKill, firstTowerKill:firstInhibitorAssist, 'creepsPerMinDeltas.10.20', 'creepsPerMinDeltas.0.10', 'xpPerMinDeltas.10.20', 'xpPerMinDeltas.0.10', 'goldPerMinDeltas.10.20', 'goldPerMinDeltas.0.10', 'damageTakenPerMinDeltas.10.20', 'damageTakenPerMinDeltas.0.10'), mean)) %>%
+    inner_join(league_matches_player_stats %>%
+      group_by(name, teamRole, teamId) %>%
+      tally())
+
+    # Reordering columns 
+    league_matches_player_stats <- league_matches_player_stats[, c(1:4, 55, 5:54)]
+
+  } else {
+
+    league_matches_player_stats <-
+    (league_matches_player_stats %>%
+    group_by(name, teamRole, teamId, win) %>%
+    summarize_at(vars(duration, kills:assists, totalDamageDealt:trueDamageDealt, totalDamageDealtToChampions:firstBloodKill, firstTowerKill:firstInhibitorAssist, 'creepsPerMinDeltas.10.20', 'creepsPerMinDeltas.0.10', 'xpPerMinDeltas.10.20', 'xpPerMinDeltas.0.10', 'goldPerMinDeltas.10.20', 'goldPerMinDeltas.0.10', 'damageTakenPerMinDeltas.10.20', 'damageTakenPerMinDeltas.0.10'), mean)) %>%
+    inner_join(league_matches_player_stats %>%
+      group_by(name, teamRole, teamId, win) %>%
+      tally())
+
+    # Reordering columns 
+    #league_matches_player_stats <- league_matches_player_stats[, c(1:4, 55, 5:54)]
+  }
+
+}
+
+
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+get_league_most_banned_champs <- function(league_champ_bans_df) {
+  num_games = nrow(league_champ_bans_df) / 10
+  return(league_champ_bans_df %>%
+    group_by(name) %>%
+    tally() %>%
+    rename(bans = n) %>%
+    arrange(desc(bans)) %>%
+    mutate(banRate = bans/num_games)
+  )
+}
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+get_league_count_banned_champs_by_turn <- function(league_champ_bans_df) {
+  return(league_champ_bans_df %>%
+    group_by(pickTurn, name) %>%
+    tally() %>%
+    rename(bans = n) %>%
+    arrange(pickTurn, desc(bans)))
+}
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+get_league_most_played_champs <- function(league_matches_player_stats) {
+  num_games = nrow(league_matches_player_stats) / 10
+  return(league_matches_player_stats %>%
+    group_by(name) %>%
+    tally() %>%
+    rename(games = n) %>%
+    arrange(desc(games)) %>%
+    mutate(playRate = games / num_games))
+}
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+get_league_most_played_champs_role <- function(league_matches_player_stats) {
+  num_games = nrow(league_matches_player_stats) / 10
+  return(league_matches_player_stats %>%
+    group_by(teamRole, name) %>%
+    tally() %>%
+    rename(games = n) %>%
+    arrange(teamRole, desc(games)) %>%
+    mutate(playRate = games / num_games))
+}
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+get_league_most_playbanned_champs <- function(league_most_banned_champs, league_most_played_champs, league_matches_champ_bans) {
+  num_games = nrow(league_matches_champ_bans) / 10
+  ret_df <- league_most_banned_champs %>%
+    full_join(league_most_played_champs, by = "name") %>%
+    mutate_all(funs(ifelse(is.na(.), 0, .))) %>%
+    mutate(playBans = bans + games) %>% 
+    mutate(playBanRate = playBans / num_games) %>%
+    arrange(desc(playBanRate))
+  return(ret_df)
+}
+
+
+
 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -229,6 +408,10 @@ get_league_regseason_summoner_totals <- function(league_matches_player_stats, sp
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
+
+#############################################
+#                   NA LCS
+#############################################
 # Get opponent's data (just swapping the team names of each game in the previous DF)
 nalcs_matches_oppteam_stats <- nalcs_matches_team_stats %>%
   group_by(gameNumber) %>%
@@ -255,5 +438,32 @@ nalcs_regseason_teamopps_avgs_df <- nalcs_regseason_teamopps_avgs_df %>%
 nalcs_regseason_team_avgdiffs_df <- data.frame(teamName = nalcs_regseason_team_avgs_df$teamName, winPct = nalcs_regseason_team_avgs_df$win, duration = nalcs_regseason_team_avgs_df$duration, nalcs_regseason_team_avgs_df[4] - nalcs_regseason_teamopps_avgs_df[4], nalcs_regseason_team_avgs_df[6:56] - nalcs_regseason_teamopps_avgs_df[6:56])
 
 nalcs_regseason_team_bluered_avgs_df <- get_league_regseason_team_avgs(nalcs_matches_team_stats, split_bluered = TRUE)
-nalcs_regseason_summoner_avgs_df <- get_league_regseason_summoner_avgs(nalcs_matches_player_stats)
+nalcs_regseason_summoner_avgs_df <- get_league_season_summoner_avgs(nalcs_matches_player_stats)
+nalcs_regseason_summoner_avgs_wl_df <- get_league_season_summoner_avgs(nalcs_matches_player_stats, split_winloss = TRUE)
+nalcs_regseason_summoner_avgs_br_df <- get_league_season_summoner_avgs(nalcs_matches_player_stats, split_bluered = TRUE)
+nalcs_regseason_summoner_avgs_wlbr_df <- get_league_season_summoner_avgs(nalcs_matches_player_stats, split_bluered = TRUE, split_winloss = TRUE)
 nalcs_regseason_summoner_totals_df <- get_league_regseason_summoner_totals(nalcs_matches_player_stats)
+
+
+# Getting entire season summoner avgs
+nalcs_season_summoner_avgs <- get_league_season_summoner_avgs(nalcs_matches_player_stats, only_regseason = FALSE)
+
+# Tallying the most-banned and most-played champions
+nalcs_most_banned_champs <- get_league_most_banned_champs(nalcs_matches_champ_bans)
+nalcs_most_banned_champs %>%
+  top_n(10, bans) %>%
+  arrange(desc(bans)) %>%
+  ggplot() + geom_bar(mapping = aes(x = name, y = bans), stat = "identity")
+
+nalcs_banned_champs_by_turn <- get_league_count_banned_champs_by_turn(nalcs_matches_champ_bans)
+nalcs_most_played_champs <- get_league_most_played_champs(nalcs_matches_player_stats)
+nalcs_most_played_champs_by_role <- get_league_most_played_champs_role(nalcs_matches_player_stats)
+nalcs_most_playbanned_champs <- get_league_most_playbanned_champs(nalcs_most_banned_champs, nalcs_most_played_champs, nalcs_matches_champ_bans)
+
+#############################################
+#                   EU LCS
+#############################################
+# Plots of regular season summoner averages
+eulcs_regseason_summoner_avgs_df <- get_league_season_summoner_avgs(eulcs_matches_player_stats)
+# Getting entire season summoner avgs
+eulcs_season_summoner_avgs <- get_league_season_summoner_avgs(eulcs_matches_player_stats, only_regseason = FALSE)
