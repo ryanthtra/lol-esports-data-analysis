@@ -494,114 +494,41 @@ eulcs_plot_killdiff +
 
 
 ##################################################################
-################# NALCS Season Champion Averages #################
+#################  Season Champion Averages ######################
 ##################################################################
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+nalcs_matches_player_stats <- read.csv("datasets/nalcs/nalcs_spring2018_match_player_stats.csv")
+eulcs_matches_player_stats <- read.csv("datasets/eulcs/eulcs_spring2018_match_player_stats.csv")
 nalcs_season_champion_avgs <- get_league_season_champion_avgs(nalcs_matches_player_stats)
 eulcs_season_champion_avgs <- get_league_season_champion_avgs(eulcs_matches_player_stats)
-nalcs_plot_champion_avgs <- nalcs_season_champion_avgs %>%
+#### Facet-wrapped plots
+nalcs_season_champ_avgs_gathered <- nalcs_season_champion_avgs %>%
+  filter(wins + losses >= 6) %>%
+  gather(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled, key = "varName", value = "valuePerGame")
+nalcs_plot_champ_avgs <- nalcs_season_champ_avgs_gathered %>%
   ggplot()
-eulcs_plot_champion_avgs <- eulcs_season_champion_avgs %>%
-  ggplot()
-# Side-by-side plots NALCS, EULCS Summoner Per Game Averages Distributions
-# Kills
-nalcs_plot_champion_avgs +
-  geom_histogram(mapping = aes(x = kills, y = ..density.., fill = teamRole), size = 1.25, alpha = .6, binwidth = .125) +
+nalcs_plot_champ_avgs +
+  geom_boxplot(mapping = aes(x = teamRole, y = valuePerGame, fill = teamRole), size = 1.25, alpha = .6) +
+  geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = valuePerGame, color = teamRole)) +
+  facet_wrap(~varName, scales = "free", ncol = 3) +
   labs(
-    title = "Kills Per Game Histogram, NALCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Kills")
-eulcs_plot_champion_avgs +
-  geom_histogram(mapping = aes(x = kills, y = ..density.., fill = teamRole), size = 1.25, alpha = .6, binwidth = .125) +
+    title = "Champion Averages per Game Box Plots, NALCS 2018 Spring Split",
+    subtitle = "Distribution Across Team Roles (minimum 6 games played)")
+nalcs_plot_champ_avgs +
+  geom_histogram(mapping = aes(x = valuePerGame, y = ..density.., fill = teamRole), color = "black", alpha = .6) +
+  facet_wrap(~varName, scales = "free", ncol = 2) +
   labs(
-    title = "Kills Per Game Histogram, EULCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Kills")
-nalcs_plot_champion_avgs +
-  geom_density(mapping = aes(x = kills, color = teamRole, fill = teamRole), alpha = .3, size = 1.25) +
+    title = "Champion Averages Per Game Histograms, NALCS 2018 Spring Split",
+    subtitle = "Distribution Across Team Roles (minimum 6 games played)")
+nalcs_plot_champ_avgs +
+  geom_density(mapping = aes(x = valuePerGame, color = teamRole, fill = teamRole), alpha = .3, size = 1) +
+  facet_wrap(~varName, scales = "free", ncol = 2) +
   labs(
-    title = "Kills Per Game Density Plot, NALCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Kills Across Team Roles")
-eulcs_plot_champion_avgs +
-  geom_density(mapping = aes(x = kills, color = teamRole, fill = teamRole), alpha = .3, size = 1.25) +
-  labs(
-    title = "Kills Per Game Density Plot, EULCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Kills Across Team Roles")
-nalcs_plot_champion_avgs +
-  geom_boxplot(mapping = aes(x = teamRole, y = kills, fill = teamRole), size = 1.25, alpha = .6) +
-  geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = kills, color = teamRole)) +
-  labs(
-    title = "Kills Per Game Box Plot, NALCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Kills Across Team Roles")
-eulcs_plot_champion_avgs +
-  geom_boxplot(mapping = aes(x = teamRole, y = kills, fill = teamRole), size = 1.25, alpha = .6) +
-  geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = kills, color = teamRole)) +
-  labs(
-    title = "Kills Per Game Box Plot, EULCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Kills Across Team Roles")
-# Deaths
-nalcs_plot_champion_avgs +
-  geom_histogram(mapping = aes(x = deaths, y = ..density.., fill = teamRole), size = 1.25, alpha = .6, binwidth = .125) +
-  labs(
-    title = "Deaths Per Game Histogram, NALCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Deaths")
-eulcs_plot_champion_avgs +
-  geom_histogram(mapping = aes(x = deaths, y = ..density.., fill = teamRole), size = 1.25, alpha = .6, binwidth = .125) +
-  labs(
-    title = "Deaths Per Game Histogram, EULCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Deaths")
-nalcs_plot_champion_avgs +
-  geom_density(mapping = aes(x = deaths, color = teamRole, fill = teamRole), alpha = .3, size = 1.25) +
-  labs(
-    title = "Deaths Per Game Density Plot, NALCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Deaths Across Team Roles")
-eulcs_plot_champion_avgs +
-  geom_density(mapping = aes(x = deaths, color = teamRole, fill = teamRole), alpha = .3, size = 1.25) +
-  labs(
-    title = "Deaths Per Game Density Plot, EULCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Deaths Across Team Roles")
-nalcs_plot_champion_avgs +
-  geom_boxplot(mapping = aes(x = teamRole, y = deaths, fill = teamRole), size = 1.25, alpha = .6) +
-  geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = deaths, color = teamRole)) +
-  labs(
-    title = "Deaths Per Game Box Plot, NALCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Assists Across Team Roles")
-eulcs_plot_champion_avgs +
-  geom_boxplot(mapping = aes(x = teamRole, y = deaths, fill = teamRole), size = 1.25, alpha = .6) +
-  geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = deaths, color = teamRole)) +
-  labs(
-    title = "Deaths Per Game Box Plot, EULCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Assists Across Team Roles")
-# Assists
-nalcs_plot_champion_avgs +
-  geom_histogram(mapping = aes(x = assists, y = ..density.., fill = teamRole), size = 1.25, alpha = .6, binwidth = .125) +
-  labs(
-    title = "Assists Per Game Histogram, NALCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Assists")
-eulcs_plot_champion_avgs +
-  geom_histogram(mapping = aes(x = assists, y = ..density.., fill = teamRole), size = 1.25, alpha = .6, binwidth = .125) +
-  labs(
-    title = "Assists Per Game Histogram, EULCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Assists")
-nalcs_plot_champion_avgs +
-  geom_density(mapping = aes(x = assists, color = teamRole, fill = teamRole), alpha = .3, size = 1.25) +
-  labs(
-    title = "Assists Per Game Density Plot, NALCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Assists Across Team Roles")
-eulcs_plot_champion_avgs +
-  geom_density(mapping = aes(x = assists, color = teamRole, fill = teamRole), alpha = .3, size = 1.25) +
-  labs(
-    title = "Assists Per Game Density Plot, EULCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Assists Across Team Roles")
-nalcs_plot_champion_avgs +
-  geom_boxplot(mapping = aes(x = teamRole, y = assists, fill = teamRole), size = 1.25, alpha = .6) +
-  geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = assists, color = teamRole)) +
-  labs(
-    title = "Assists Per Game Box Plot, NALCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Assists Across Team Roles")
-eulcs_plot_champion_avgs +
-  geom_boxplot(mapping = aes(x = teamRole, y = assists, fill = teamRole), size = 1.25, alpha = .6) +
-  geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = assists, color = teamRole)) +
-  labs(
-    title = "Assists Per Game Box Plot, EULCS 2018 Spring Split Regular Season",
-    subtitle = "Distribution of Assists Across Team Roles")
+    title = "Champion Averages Per Game Density Plots, NALCS 2018 Spring Split",
+  subtitle = "Distribution Across Team Roles (minimum 6 games played)")
+
 
 
 
@@ -642,17 +569,17 @@ nalcs_plot_player_avgs +
   geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = valuePerGame, color = teamRole)) +
   facet_wrap(~ varName, scales = "free", ncol = 3) +
   labs(
-    title = "Values per Game Box Plot, NALCS 2018 Spring Split Regular Season",
+    title = "Player Averages per Game Box Plots, NALCS 2018 Spring Split",
     subtitle = "Distribution Across Team Roles")
 nalcs_plot_player_avgs +
   geom_histogram(mapping = aes(x = valuePerGame, y = ..density.., fill = teamRole), color = "black", alpha = .6) +
   facet_wrap(~varName, scales = "free", ncol = 2) +
   labs(
-    title = "Values Per Game Histogram, NALCS 2018 Spring Split Regular Season",
+    title = "Player Averages Per Game Histograms, NALCS 2018 Spring Split",
     subtitle = "Distribution of Values")
 nalcs_plot_player_avgs +
-  geom_density(mapping = aes(x = valuePerGame, color = teamRole, fill = teamRole), alpha = .3, size = 1)
+  geom_density(mapping = aes(x = valuePerGame, color = teamRole, fill = teamRole), alpha = .3, size = 1) +
   facet_wrap(~varName, scales = "free", ncol = 2) +
   labs(
-    title = "Values Per Game Density Plot, NALCS 2018 Spring Split Regular Season",
+    title = "Player Averages Per Game Density Plots, NALCS 2018 Spring Split",
     subtitle = "Distribution of Values")
