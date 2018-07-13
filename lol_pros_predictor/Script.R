@@ -20,7 +20,7 @@ process_uri <- function(str_uri) {
   response <- GET(str_uri)
   print(response$status_code)
 
-  while (response$status_code == 429) {
+  while (response$status_code != 200) {
     Sys.sleep(2)
     response <- GET(str_uri)
   }
@@ -276,6 +276,9 @@ champions_df_simple <- champions_df %>%
   rename(championId = key) %>%
   mutate(championId = as.numeric(championId))
 remove(champions_df)
+
+
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # NA LCS data (Spring Split 2018)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -316,6 +319,27 @@ remove(champions_df)
 #eulcs_matches_participants_combined_accum <- get_accum_matches_participants(eulcs_matches, eulcs_matchid_df, combine_teammate_stats = TRUE)
 #eulcs_matches_tpc_accum <- eulcs_matches_participants_combined_accum %>%
   #inner_join(eulcs_matches_teams_accum)
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Korea LCK data (Spring Split 2018)
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Korea LCK 2018 Spring Split -- Regular Season, Promotion, and Playoffs
+#lck_matchid_df <- read.csv("gameid_data/LCK_Spring2018.csv")
+
+#lck_matches <- get_league_match_data_list(lck_matchid_df)
+#lck_matches_teams_accum <- get_accum_matches_teams(lck_matches, lck_matchid_df)
+#lck_matches_bans_accum <- get_accum_matches_bans(lck_matches, lck_matchid_df)
+#lck_matches_participants_accum <- get_accum_matches_participants(lck_matches, lck_matchid_df)
+#lck_matches_participants_accum <- lck_matches_participants_accum %>%
+#mutate_at(vars(contains("Deltas")), funs(replace(., is.na(.), 0)))
+#lck_matches_participants_combined_accum <- get_accum_matches_participants(lck_matches, lck_matchid_df, combine_teammate_stats = TRUE)
+#lck_matches_tpc_accum <- lck_matches_participants_combined_accum %>%
+#inner_join(lck_matches_teams_accum)
+
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # MSI 2018 data

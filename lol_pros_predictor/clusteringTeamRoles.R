@@ -56,7 +56,6 @@ table(eulcs_season_summoner_avgs$teamRole, eulcs_fit.km$cluster)
 # Using knn to test EULCS data using k-means model centroids as training model
 library(FNN)
 pred_eulcs_players <- get.knnx(nalcs_fit.km$centers, eulcs_km_data, 1)$nn.index[, 1]
-table(eulcs_season_summoner_avgs$teamRole, pred_eulcs_players)
 library(gmodels)
 CrossTable(x = eulcs_season_summoner_avgs$teamRole,
            y = pred_eulcs_players,
