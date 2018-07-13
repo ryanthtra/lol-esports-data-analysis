@@ -36,7 +36,8 @@ barplot(table(nc$Best.n[1,]),
 set.seed(1234)
 nalcs_fit.km <- kmeans(nalcs_km_data, 5, iter.max = 1000)
 clusplot(nalcs_km_data, nalcs_fit.km$cluster, main = "Clusplot")
-table(nalcs_fit.km$cluster, nalcs_season_summoner_avgs$teamRole)
+table(nalcs_season_summoner_avgs$teamRole, nalcs_fit.km$cluster)
+
 
 # Clustering EU LCS 
 eulcs_season_summoner_avgs <- read.csv("datasets/eulcs/eulcs_spring2018_season_summoner_avgs.csv") %>%
@@ -51,3 +52,12 @@ set.seed(1234)
 eulcs_fit.km <- kmeans(eulcs_km_data, 5, iter.max = 1000)
 clusplot(eulcs_km_data, eulcs_fit.km$cluster, main = "Clusplot")
 table(eulcs_season_summoner_avgs$teamRole, eulcs_fit.km$cluster)
+
+# Using knn to test EULCS data using k-means model centroids as training model
+library(FNN)
+pred_eulcs_players <- get.knnx(nalcs_fit.km$centers, eulcs_km_data, 1)$nn.index[, 1]
+table(eulcs_season_summoner_avgs$teamRole, pred_eulcs_players)
+library(gmodels)
+CrossTable(x = eulcs_season_summoner_avgs$teamRole,
+           y = pred_eulcs_players,
+           prop.chisq = FALSE)

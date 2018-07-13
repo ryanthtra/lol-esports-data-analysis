@@ -26,7 +26,9 @@ A: There are 17 features being used for this problem.  They are:
 - ***wards killed***: The total number of enemy wards placed in the Summoner's Rift that a player destroyed. 
 
 ### 3. Which machine learning technique will you use?
-A: k-means clustering will be used.
+A: ***k-means clustering*** will be used for first testing its clustering performance of a dataset.
+
+The k-means object generated will have a variable named "centers", which will be used as the input (training) model for when we use the ***k-nearest-neighbor*** technique (setting ```k = 1```) for other datasets.
 
 ### 4. How will you evaluate the success of your machine learning technique? What metric will you use?
 A: Since I manually added team roles to the datasets being used for this problem, I will output a table of said team roles against the clustering results.  This table will represent a confusion matrix.  From this matrix, we can calculate an overall accuracy rate for each team role ([true positives + true negatives] / N).  This will be the metric used for evaluating the success of the machine learning technique.
