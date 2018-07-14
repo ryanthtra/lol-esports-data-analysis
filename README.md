@@ -4,7 +4,7 @@ Analysis, insights, and modeling for various League of Legends eSports leagues f
 
 ![League of Legends Logo](presentation-images/League-of-Legends-logo.png)
 
-![NALCS Logo](presentation-images/nalcs-logo.png)![EULCS Logo](presentation-images/eulcs-logo.png)![LCK Logo](presentation-images/lck-logo.png)![LPL Logo](presentation-images/lpl-logo.png)![LMS Logo](presentation-images/lms-logo.png)
+![NALCS Logo](presentation-images/nalcs-logo.png)![EULCS Logo](presentation-images/eulcs-logo.png)![LCK Logo](presentation-images/lck-logo.png)![LMS Logo](presentation-images/lms-logo.png)
 ### Introduction:
 League of Legends (LoL) is a multiplayer online battle arena (MOBA) videogame by Riot Games.  The primary game mode for LoL is Summoner's Rift (which is also the name of the map, or arena), in which two teams of five players vie to destroy their opponents' base, called the Nexus.  Each player chooses one of 141 unique avatars, called champions, to represent them, and each champion has its own unique blend of attributes, skills, and abilities.
 
@@ -34,6 +34,6 @@ httr will be used to make the web API calls, and jsonlite will be used to conver
 
 ## In brief, outline your approach to solving this problem (knowing that this might change later).
 
-My approach to solving this problem is by obtaining all the data for the matches for the 2018 Spring Split of each of fives leagues whose match data is easily accessible: the NALCS, the EULCS, League of Legends Champions Korea (LCK), LoL Pro League (LPL; in China), and the League of Legends Master Series (LMS; Taiwan, Hong Kong, and Macau).
+My approach to solving this problem is by obtaining all the data for the matches for the 2018 Spring Split of each of fives leagues whose match data is easily accessible: the NALCS, the EULCS, League of Legends Champions Korea (LCK), and the League of Legends Master Series (LMS; Taiwan, Hong Kong, and Macau).
 
 Each individual match will have its data wrangled into its desired observation format, which will then be concatenated to a cumulative data frame.  Further data wrangling will be used in order to calculate certain statistics, such as totals, ratios, percentages, and probabilities, and to create data frames for constructing the predictive and classification models.

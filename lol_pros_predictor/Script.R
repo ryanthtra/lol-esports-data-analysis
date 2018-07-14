@@ -132,11 +132,17 @@ get_accum_matches_bans <- function(league_matchlist, league_matchid_df) {
     # Alter bans DFs so that we can get associated champion name with the key
     ret_bans <- lapply(league_matchlist[[i]]$teams$bans, function(item) {
       # Add 6 to 4th and 5th rows of pickTurn in order to get the correct ban order.
-      item[4:5,] <- item[4:5,] %>%
-        mutate(pickTurn = as.numeric(pickTurn) + 6)
-      item <- left_join(item, champions_df_simple)
-      return (item)
+      tryCatch({
+          item[4:5,] <- item[4:5,] %>%
+          mutate(pickTurn = as.numeric(pickTurn) + 6)
+          item <- left_join(item, champions_df_simple)
+        },
+        error = function(e) NULL)
+      return(item)
     })
+    if (length(ret_bans[[1]]) == 0) {
+      next
+    }
     my_bans <- as.data.frame(ret_bans)
     my_bans2 <- my_bans %>% select(championId.1:name.1)
     my_bans2 <- my_bans2 %>% rename(championId = championId.1, pickTurn = pickTurn.1, name = name.1)
@@ -342,35 +348,36 @@ remove(champions_df)
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# LMS data (Spring Split 2018)
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# LMS 2018 Spring Split -- Regular Season, Promotion, and Playoffs
+#lms_matchid_df <- read.csv("gameid_data/LMS_Spring2018.csv")
+
+#lms_matches <- get_league_match_data_list(lms_matchid_df)
+#lms_matches_teams_accum <- get_accum_matches_teams(lms_matches, lms_matchid_df)
+#lms_matches_bans_accum <- get_accum_matches_bans(lms_matches, lms_matchid_df)
+#lms_matches_participants_accum <- get_accum_matches_participants(lms_matches, lms_matchid_df)
+#lms_matches_participants_accum <- lms_matches_participants_accum %>%
+#mutate_at(vars(contains("Deltas")), funs(replace(., is.na(.), 0)))
+#lms_matches_participants_combined_accum <- get_accum_matches_participants(lms_matches, lms_matchid_df, combine_teammate_stats = TRUE)
+#lms_matches_tpc_accum <- lms_matches_participants_combined_accum %>%
+#inner_join(lms_matches_teams_accum)
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # MSI 2018 data
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-## MSI 2018 Play-In Stage
-#msipi_matchid_df <- read.csv("MSI_PlayInAll2018.csv")
-## Group Stage 
-#msigs_matchid_df <- read.csv("MSI_GroupStage2018.csv")
-## Group Stage Tiebreakers and Knockouts
-#msiko_matchid_df <- read.csv("MSI_GroupStageTBKO2018.csv")
-## All MSI 2018
-#msiall_matchid_df <- read.csv("MSI_All2018.csv")
+# MSI 2018 
+#msi_matchid_df <- read.csv("gameid_data/MSI_All2018.csv")
 
-#msipi_matches <- get_league_match_data_list(msipi_matchid_df)
-#msipi_matches_teams_accum <- get_accum_matches_teams(msipi_matches, msipi_matchid_df)
-#msipi_bluered_avg_stats <- msipi_matches_teams_accum %>%
-#group_by(teamId) %>%
-#summarise_each(funs(mean), towerKillAvg = towerKills, inhibitorKillAvg = inhibitorKills, baronKillAvg = baronKills, dragonKillAvg = dragonKills, riftHeraldKillAvg = riftHeraldKills)
-#msipi_bluered_wins <- msipi_matches_teams_accum %>%
-#group_by(teamId, win) %>%
-#filter(win == "Win") %>%
-#count(win)
-
-#msiall_matches <- get_league_match_data_list(msiall_matchid_df)
-#msiall_matches_teams_accum <- get_accum_matches_teams(msiall_matches, msiall_matchid_df)
-#msiall_bluered_avg_stats <- msiall_matches_teams_accum %>%
-  #group_by(teamId) %>%
-  #summarise_each(funs(mean), towerKillAvg = towerKills, inhibitorKillAvg = inhibitorKills, baronKillAvg = baronKills, dragonKillAvg = dragonKills, riftHeraldKillAvg = riftHeraldKills)
-#msiall_bluered_wins <- msiall_matches_teams_accum %>%
-  #group_by(teamId, win) %>%
-  #filter(win == "Win") %>%
-  #count(win)
-#msiall_bluered_winpct_by_team <- get_league_bluered_winpct_by_team(msiall_matches_teams_accum)
+#msi_matches <- get_league_match_data_list(msi_matchid_df)
+#msi_matches_teams_accum <- get_accum_matches_teams(msi_matches, msi_matchid_df)
+#msi_matches_bans_accum <- get_accum_matches_bans(msi_matches, msi_matchid_df)
+#msi_matches_participants_accum <- get_accum_matches_participants(msi_matches, msi_matchid_df)
+#msi_matches_participants_accum <- msi_matches_participants_accum %>%
+#mutate_at(vars(contains("Deltas")), funs(replace(., is.na(.), 0)))
+#msi_matches_participants_combined_accum <- get_accum_matches_participants(msi_matches, msi_matchid_df, combine_teammate_stats = TRUE)
+#msi_matches_tpc_accum <- msi_matches_participants_combined_accum %>%
+#inner_join(msi_matches_teams_accum)
