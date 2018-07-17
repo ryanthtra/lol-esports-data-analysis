@@ -1,0 +1,32 @@
+# LoL eSports: Clustering Team Roles Milestone Report
+
+## Introduction
+
+To all types of players who play League of Legends (LoL), and to those who watch professionals compete at the game throughout various eSports leagues around the world, it's easy to visually identify the five roles of each competing team in a match.  
+
+First of all, by observing each of the players' locations on the map at the beginning of a match one can identify their roles.  Here is an image of the Summoner's Rift map for reference:
+
+![Summoner's Rift](presentation-images/clustering-milestone-report/01.jpg)
+
+The ***Top Laners*** traverse along dirt path that travels along the west and north perimeters of the map.  Near the start of the match they usually combat enemy minions and each other at the northwest corner of the map.  This type of combat at the beginning of the match is called the Laning Phase.
+
+The ***Middle (aka Mid) Laners*** traverse along the dirt path that cuts straight across the diagonal of the map connecting the two opposing bases.  They, too, combat enemy minions and each other during the Laning Phase, where they typically compete right at the center of the map.
+
+The ***Bottom Lane (aka Botlane) Carries*** and ***Supports*** traverse along the dirt path that travels along the south and east perimeters of the map.  Their laning phase typically occurs at the southeast corner of the map.  The ***Botlane Carries*** deliver damage to their opponents and enemy minions, while the ***Supports*** play an auxiliary role by providing protection to their botlane teammates.
+
+Finally, the ***Junglers*** traverse in the forest-like areas between the three lanes.  One team's jungle is in the west and south "triangles", while the other team's is in the north and east triangular areas.  During the Laning Phase the ***Junglers*** are combating the monsters that inhabit these areas.  They may occasionally encounter each other, especially if one Jungler "invades" their opponents' jungle areas.
+
+Therefore, it's nearly as easy to identify team roles in a League of Legends match as it is to identify the nine positions of the defensive players in a baseball game.  The botlane is a little trickier, since both ***Carries*** and ***Supports*** are there, but by observing their behaviors during the laning phase the two roles are fairly simple to distinguish.
+
+## The Question
+Sure, it's easy to identify team roles when observing a single match at a time, but it's not humanly possible to identify team roles for the hundreds, thousands, and millions of matches that have run through Riot Games' servers through eyeballs alone.  
+
+Fortunately, Riot Games provides post-match data of teams and individual players for virtually all matches that go through their servers.  Is it possible for a machine to take a sample of data from these matches and be able to distinguish all five team roles from each other?
+
+
+## Diving into the Data
+
+The dataset we'll be using to answer this question was obtained and wrangled from the match data of the 2018 Spring Split seasons of four different professional Lol eSports leagues: the North Ameica LoL Championship Series (NALCS), the Europe LoL Championship Series (EULCS), LoL Champions Korea (LCK), and LoL Master Series (LMS), plus the 2018 Mid-Season Invitational (MSI), an international tournament similar to the UEFA Champions League in Football/Soccer.
+
+#### Obtaining and Cleaning/Wrangling the data: 
+In-depth details about how the data was obtained and wrangled can be found [here](DataWranglingReport.md).

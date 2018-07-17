@@ -1,3 +1,17 @@
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# The "template" datasets created from Script.R
+nalcs_matches_champ_bans <- read.csv("datasets/nalcs/nalcs_spring2018_champ_bans.csv")
+nalcs_matches_player_stats <- read.csv("datasets/nalcs/nalcs_spring2018_match_player_stats.csv")
+nalcs_matches_team_stats <- read.csv("datasets/nalcs/nalcs_spring2018_match_team_stats.csv")
+
+# EU LCS datasets
+eulcs_matches_champ_bans <- read.csv("datasets/eulcs/eulcs_spring2018_champ_bans.csv")
+eulcs_matches_player_stats <- read.csv("datasets/eulcs/eulcs_spring2018_match_player_stats.csv")
+eulcs_matches_team_stats <- read.csv("datasets/eulcs/eulcs_spring2018_match_team_stats.csv")
+
 nalcs_plot_rsplayer_avgs <- nalcs_season_summoner_avgs %>%
   filter(wins + losses >= 6) %>%
   ggplot()

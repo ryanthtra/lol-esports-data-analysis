@@ -60,3 +60,22 @@ library(gmodels)
 CrossTable(x = eulcs_season_summoner_avgs$teamRole,
            y = pred_eulcs_players,
            prop.chisq = FALSE)
+
+# Using knn to test EULCS match-by-match individual performances
+eulcs_season_match_data <- read.csv("datasets/eulcs/eulcs_spring2018_match_player_stats.csv") %>% mutate(roleLane = paste(role, lane, sep = "_"))
+eulcs_playermatch_km_data <- eulcs_season_match_data %>%
+  select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
+  scale()
+library(FNN)
+pred_eulcs_matchplayers <- get.knnx(nalcs_fit.km$centers, eulcs_playermatch_km_data, 1)$nn.index[, 1]
+library(gmodels)
+CrossTable(x = eulcs_season_match_data$teamRole,
+           y = eulcs_season_match_data$roleLane,
+           prop.chisq = FALSE)
+table(eulcs_season_match_data$teamRole,
+      eulcs_season_match_data$roleLane)
+CrossTable(x = eulcs_season_match_data$teamRole,
+           y = pred_eulcs_matchplayers,
+           prop.chisq = FALSE)
+table(eulcs_season_match_data$teamRole,
+      pred_eulcs_matchplayers)
