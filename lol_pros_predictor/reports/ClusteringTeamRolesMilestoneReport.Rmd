@@ -6,7 +6,7 @@ To all types of players who play League of Legends (LoL), and to those who watch
 
 First of all, by observing each of the players' locations on the map at the beginning of a match one can identify their roles.  Here is an image of the Summoner's Rift map for reference:
 
-![Summoner's Rift](presentation-images/clustering-milestone-report/01.jpg)
+![Summoner's Rift](reports/presentationImages/clusteringMilestoneReport/01.jpg)
 
 The ***Top Laners*** traverse along dirt path that travels along the west and north perimeters of the map.  Near the start of the match they usually combat enemy minions and each other at the northwest corner of the map.  This type of combat at the beginning of the match is called the Laning Phase.
 
