@@ -1,12 +1,20 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+  author: "Ryan Transfiguracion"
+  #### by Ryan Transfiguracion
+---
 # LoL eSports: Clustering Team Roles Milestone Report
+#### by Ryan Transfiguracion
 
 ## Introduction
 
 To all types of players who play League of Legends (LoL), and to those who watch professionals compete at the game throughout various eSports leagues around the world, it's easy to visually identify the five roles of each competing team in a match.  
 
-First of all, by observing each of the players' locations on the map at the beginning of a match one can identify their roles.  Here is an image of the Summoner's Rift map for reference:
+First of all, by observing each of the players' locations on the map at the beginning of a match one can identify their roles.  Figure 1 shows an image of the Summoner's Rift map for reference:
 
-![Summoner's Rift](reports/presentationImages/clusteringMilestoneReport/01.jpg)
+![Summoner's Rift](presentation-images/clustering-milestone-report/01.jpg)
 
 The ***Top Laners*** traverse along dirt path that travels along the west and north perimeters of the map.  Near the start of the match they usually combat enemy minions and each other at the northwest corner of the map.  This type of combat at the beginning of the match is called the Laning Phase.
 
@@ -24,9 +32,46 @@ Sure, it's easy to identify team roles when observing a single match at a time, 
 Fortunately, Riot Games provides post-match data of teams and individual players for virtually all matches that go through their servers.  Is it possible for a machine to take a sample of data from these matches and be able to distinguish all five team roles from each other?
 
 
+### Why the Answering the Question Matters
+
+In the Summoner's Rift game modes for Classic 5v5 matches, Draft Pick and Ranked, because the players' selection of champions are done and revealed in a structured order, team roles are always assigned the same Participant IDs according to which side of the map the players are on:
+
+```{r echo = FALSE, results = "asis"}
+library(knitr)
+TeamRole <- c("Top", "Jungle", "Mid", "BotCarry", "Support")
+BlueTeam <- c(1,2,3,4,5)
+RedTeam <- c(6,7,8,9,10)
+df_roles <- data.frame(TeamRole, BlueTeam, RedTeam)
+kable(df_roles, caption = "Assumed Team Role Participant IDs -- Draft Pick, Ranked, eSports")
+```
+
+While nothing is preventing teammates from swapping team roles before a match or even during a match (e.g., a Top Laner picks Smite as a summoner spell or has the Unsealed Spellbook keystone rune and swaps their current summoner spell for Smite and becomes a de facto Jungler), it's safe to assume that the assignment of these team roles are cemented in place.
+
+However, in the other Summoner's Rift game mode, Blind Pick, the selection of all ten champions are done and revealed simultaneously, and, therefore, team roles cannot be assumed to be in the same Participant ID order, nor can it be assumed that the five distinct team roles exist on each side as a match proceeds.  For instance, one team may have two Junglers, while the other team has no Junglers.
+
+Furthermore, while Riot Games appears to have a classification system in place for labeling a player in a certain lane and role, it has shown to be flawed, even in a game mode with an ordered champion selection as is the case in professional eSports matches.  Below is a table representing the NA LCS 2018 Spring Split team roles.  The column names are team roles that I programatically entered according to Participant ID, while the row names represent a concatentation of the ```role``` and ```lane``` variables that Riot Games assigned and were obtained from the data set:
+
+
+```{r message = FALSE, results = "asis"}
+library(dplyr)
+nalcs_season_match_data <- read.csv(
+  "../datasets/nalcs/nalcs_spring2018_match_player_stats.csv") %>% 
+  mutate(roleLane = paste(role, lane, sep = ", "))
+table_roles <- table(nalcs_season_match_data$roleLane, nalcs_season_match_data$teamRole)
+kable(table_roles, caption = "NA LCS Spring Split 2018 Team Role Assignments")
+```
+
+Not only are there ten different combinations of Role and Lane variables in this data set, but there are a large number of manually-classified roles being auto-classified into different roles.  
+
+For instance, there are a significant number of Mid and Top Laners being assigned the ```NONE, JUNGLE``` ```role-lane``` combination.  This can be theorized in one way: Riot Games has a classification system in place that assigns players to a ```role-lane``` according to where they are located on the map at a certain point in time in a match, particularly early.   
+
+The reason I make this theory, is because, since Junglers can play a pivotal role early in a match due to their ability to roam the map and "gank" (an amalgamation of "flank", "gang", and "kill") opposing Laners, a pre-laning phase tactic called counter-jungling, or invading the enemy Jungler, is used to hinder the enemy Jungler's ganking effectiveness during the laning phase.  In this tactic, multiple teammates are often used in an attempt to ensure their team's Jungler early advantage, and therefore, when the time comes for the system to assign the ```role-lane```, those non-Jungler teammates who are still in the jungle may inadvertantly be assined the ```NONE, JUNGLE``` ```role-lane``` combination.
+
+While the auto-classification system has shown to be flawed, at least it's safe to assume team roles for Draft Pick, Ranked, and eSports matches due to the structure cited in Figure 1, and many third-party League of Legends analytics websites, such as [op.gg](http://na.op.gg), [champion.gg](https://champion.gg), and [mobalytics.gg](https://mobalytics.gg), appear to make that assumption.  However, these sites miss out on analyzing data from Blind Pick matches, in which team role assumptions cannot be made.  If the auto-classification system can be improved upon, then both Riot Games and these third-party websites can utilize this improved system for their future analytics.
+
 ## Diving into the Data
 
-The dataset we'll be using to answer this question was obtained and wrangled from the match data of the 2018 Spring Split seasons of four different professional Lol eSports leagues: the North Ameica LoL Championship Series (NALCS), the Europe LoL Championship Series (EULCS), LoL Champions Korea (LCK), and LoL Master Series (LMS), plus the 2018 Mid-Season Invitational (MSI), an international tournament similar to the UEFA Champions League in Football/Soccer.
+The datasets we'll be using to answer this question was obtained and wrangled from the match data of the 2018 Spring Split seasons of four different professional Lol eSports leagues: the North Ameica LoL Championship Series (NALCS), the Europe LoL Championship Series (EULCS), LoL Champions Korea (LCK), and LoL Master Series (LMS), plus the 2018 Mid-Season Invitational (MSI), an international tournament similar to the UEFA Champions League in Football/Soccer.
 
 #### Obtaining and Cleaning/Wrangling the data: 
-In-depth details about how the data was obtained and wrangled can be found [here](DataWranglingReport.md).
+In-depth details about how the data was obtained and wrangled can be found in this document: [DataWranglingReport.pdf](DataWranglingReport.pdf).

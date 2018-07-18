@@ -1,21 +1,86 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 # Exploratory Analysis Report
 #### by Ryan Transfiguracion
 
 ## Exploring Player and Team Role Performances
-As we skimmed through the NALCS player averages data frame (first, by taking the match-by-match player stats dataset [here](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_match_player_stats.csv), grouping by player name and team role, and then taking a mean summary of most of the numerical columns) and sorted the observations by individual columns, it was clear that certain team roles were generally grouped at the top, bottom, or middle of the lists ofindividual statistics.
+As we skimmed through the NALCS player averages data frame (first, by taking the match-by-match player stats dataset [here](lol_pros_predictor/datasets/nalcs/nalcs_spring2018_match_player_stats.csv), grouping by player name and team role, and then taking a mean summary of most of the numerical columns) and sorted the observations by individual columns, it was clear that certain team roles were generally grouped at the top, bottom, or middle of the lists of individual statistics.
 
+```{r set-options, echo=FALSE, cache=FALSE}
+library(knitr)
+```
 First, let's look at some plots for ***kills per game*** in the NALCS:
 
-![Plot 1](presentation-images/exploratory-analysis/01.png)
-![Plot 2](presentation-images/exploratory-analysis/02.png)
-![Plot 3](presentation-images/exploratory-analysis/03.png)
+```{r message=FALSE, include=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+# Preparation for next nine plots.
+nalcs_matches_player_avgs <- read.csv("../datasets/nalcs/nalcs_spring2018_season_summoner_avgs.csv")
+nalcs_plot_player_avgs <- nalcs_matches_player_avgs %>%
+  filter(wins + losses >= 6) %>%
+  ggplot()
+```
+```{r}
+nalcs_plot_player_avgs +
+  geom_histogram(mapping = aes(x = kills, y = ..density.., fill = teamRole), 
+                 color = "black", size = 1.25, alpha = .6, binwidth = .125) +
+  labs(
+    title = "Kills Per Game Histogram, NALCS 2018 Spring Split",
+    subtitle = "Distribution of Kills")
+```
+\pagebreak
+```{r}
+nalcs_plot_player_avgs +
+  geom_density(mapping = aes(x = kills, color = teamRole, fill = teamRole), 
+               alpha = .3, size = 1.25) +
+  labs(
+    title = "Kills Per Game Density Plot, NALCS 2018 Spring Split",
+    subtitle = "Distribution of Kills Across Team Roles")
+```
+\pagebreak
+```{r}
+nalcs_plot_player_avgs +
+  geom_boxplot(mapping = aes(x = teamRole, y = kills, fill = teamRole), 
+               size = 1.25, alpha = .6) +
+  geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = kills, color = teamRole)) +
+  labs(
+    title = "Kills Per Game Box Plot, NALCS 2018 Spring Split",
+    subtitle = "Distribution of Kills Across Team Roles")
+```
 
 It's pretty clear in all three plots that Supports achieve the least number of kills per game, followed by Junglers and Top Laners, while Mid Laners and Bottom Lane Carries and mixed together at the top.
 
+\pagebreak
 Now, let's look at ***deaths per game***:
-![Plot 4](presentation-images/exploratory-analysis/04.png)
-![Plot 5](presentation-images/exploratory-analysis/05.png)
-![Plot 6](presentation-images/exploratory-analysis/06.png)
+```{r}
+nalcs_plot_player_avgs +
+  geom_histogram(mapping = aes(x = deaths, y = ..density.., fill = teamRole), 
+                 color = "black", size = 1.25, alpha = .6, binwidth = .125) +
+  labs(
+    title = "Deaths Per Game Histogram, NALCS 2018 Spring Split",
+    subtitle = "Distribution of Deaths")
+```
+```{r}
+nalcs_plot_player_avgs +
+  geom_density(mapping = aes(x = deaths, color = teamRole, fill = teamRole), 
+               alpha = .3, size = 1.25) +
+  labs(
+    title = "Deaths Per Game Density Plot, NALCS 2018 Spring Split",
+    subtitle = "Distribution of Deaths Across Team Roles")
+```
+```{r}
+nalcs_plot_player_avgs +
+  geom_boxplot(mapping = aes(x = teamRole, y = deaths, fill = teamRole), 
+               size = 1.25, alpha = .6) +
+  geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = deaths, color = teamRole)) +
+  labs(
+    title = "Deaths Per Game Box Plot, NALCS 2018 Spring Split",
+    subtitle = "Distribution of Assists Across Team Roles")
+```
 
 While team roles are clumped closer together for deaths per game compared to the kills per game statistic, we see that Top Laners and Supports are typically die the most often.  
 
@@ -23,17 +88,86 @@ In a typical League of Legends game, the Top Laner is the most isolated role dur
 
 Supports are typically the weakest roles when combining both damage output and defense, and their protective abilities (e.g., healing, providing shields) are usually prioritized for their teammates.  Thus, they are usually prioritized by the enemy team in group fights because of their abilities to help their teammates survive.
 
+\pagebreak
 Now, let's look at ***assists per game***.  To clarify, an assist is usually achieved by either dealing damage or hindrance abilities (i.e. debuffs and crowd control [CC]) to a killed enemy champion without dealing the killing blow themselves, or providing protection or augmenting abilities (i.e., buffs) to a teammate who deals the killing blow to an enemy champion:
-![Plot 7](presentation-images/exploratory-analysis/07.png)
-![Plot 8](presentation-images/exploratory-analysis/08.png)
-![Plot 9](presentation-images/exploratory-analysis/09.png)
+```{r}
+nalcs_plot_player_avgs +
+  geom_histogram(mapping = aes(x = assists, y = ..density.., fill = teamRole), 
+                 color = "black", size = 1.25, alpha = .6, binwidth = .2) +
+  labs(
+    title = "Assists Per Game Histogram, NALCS 2018 Spring Split",
+    subtitle = "Distribution of Assists")
+```
+\pagebreak
+```{r}
+nalcs_plot_player_avgs +
+  geom_density(mapping = aes(x = assists, color = teamRole, fill = teamRole), 
+               alpha = .3, size = 1.25) +
+  labs(
+    title = "Assists Per Game Density Plot, NALCS 2018 Spring Split",
+    subtitle = "Distribution of Assists Across Team Roles")
+```
+\pagebreak
+```{r}
+nalcs_plot_player_avgs +
+  geom_boxplot(mapping = aes(x = teamRole, y = assists, fill = teamRole), 
+               size = 1.25, alpha = .6) +
+  geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = assists, color = teamRole)) +
+  labs(
+    title = "Assists Per Game Box Plot, NALCS 2018 Spring Split",
+    subtitle = "Distribution of Assists Across Team Roles")
+```
 
 We see nearly the opposite of ***kills per game***.  Supports followed by Junglers average the most assists in a game.  Supports typically, though lacking in damage output, provide the most protection, CC, buffs, and/or debuffs, while Junglers provide ganks for their teammates since they roam throgh most of the map.
 
 Below are collections of histograms, density plots, and box plots faceted by 17 different variables, in alphabetical order, showing player averages per game through the entire 2018 Spring Split (regular season, tiebreakers, and playoffs):
-![Plot 28 NALCS Histograms](presentation-images/exploratory-analysis/28.png)
-![Plot 29 NALCS Density Plots](presentation-images/exploratory-analysis/29.png)
-![Plot 27 NALCS Box Plots](presentation-images/exploratory-analysis/27.png)
+```{r include=FALSE}
+#### Facet-wrapped plots
+nalcs_season_summoner_avgs_gathered <- nalcs_matches_player_avgs %>%
+  gather(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions,
+         physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, 
+         totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, 
+         champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled, key = "varName", 
+         value = "valuePerGame")
+
+# Template for next three plots
+nalcs_plot_player_avgs_gathered <- nalcs_season_summoner_avgs_gathered %>%
+  filter(wins + losses >= 6) %>%
+  ggplot()
+```
+```{r fig10, fig.width=10, fig.asp=1.78, fig.align="center", message=FALSE}
+# Histograms
+nalcs_plot_player_avgs_gathered +
+  geom_histogram(mapping = aes(x = valuePerGame, y = ..density.., fill = teamRole), 
+                 color = "black", alpha = .6) +
+  facet_wrap(~varName, scales = "free", ncol = 2) +
+  labs(
+    title = "Player Averages Per Game Histograms, NALCS 2018 Spring Split",
+    subtitle = "Distribution of Values")
+```
+
+```{r fig11, fig.width=10, fig.asp=1.78, fig.align='center', message=FALSE}
+nalcs_plot_player_avgs_gathered +
+  geom_density(mapping = aes(x = valuePerGame, color = teamRole, fill = teamRole), 
+               alpha = .3, size = 1) +
+  facet_wrap(~varName, scales = "free", ncol = 2) +
+  labs(
+    title = "Player Averages Per Game Density Plots, NALCS 2018 Spring Split",
+    subtitle = "Distribution of Values")
+```
+```{r fig12, out.width="100%", fig.width=12, fig.asp=2.00, fig.align='center', message=FALSE}
+# Box Plots
+nalcs_plot_player_avgs_gathered +
+  geom_boxplot(mapping = aes(x = teamRole, y = valuePerGame, fill = teamRole), 
+               size = 1.00, alpha = .6) +
+  geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = valuePerGame, color = teamRole)) +
+  facet_wrap(~ varName, scales = "free", ncol = 5) +
+  theme(axis.text.x = element_text(angle=30, vjust=0.6)) +
+  labs(
+    title = "Player Averages per Game Box Plots, NALCS 2018 Spring Split",
+    subtitle = "Distribution Across Team Roles")
+```
+
 
 As we can see through these plots, team roles can be clearly defined by certain characteristics and statistics:
 
