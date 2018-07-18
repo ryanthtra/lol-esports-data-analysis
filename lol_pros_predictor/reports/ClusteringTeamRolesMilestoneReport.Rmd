@@ -102,7 +102,7 @@ We can find the match IDs the same way we found the API.  Figures 3 and 4 show t
 
 ![Web Inspector URL](presentation-images/data-wrangling/06.png)
 
-Therefore, we can accumulate these match IDs by repeating step 1, and then copying and pasting the IDs into a CSV file, in which portion of the NA LCS 2018 Spring Split is shown in table form in Figure 5.
+Therefore, we can accumulate these match IDs by repeating step 1, and then copying and pasting the IDs into a CSV file, in which a portion of the NA LCS 2018 Spring Split is shown in table form in Figure 5.
 
 ```{r message = FALSE}
 library(knitr)
@@ -110,7 +110,7 @@ kable(head(read.csv("../gameid_data/NALCS_Spring2018.csv")), caption = "Match ID
 ```
 
 #### 3. Obtaining Match Data for an Entire Season
-Below is the R script/code used to obtain the top-level match data for the few matches of the NA LCS 2018 Spring Split season.
+Below is the R script/code used to obtain the top-level match data for a few matches of the NA LCS 2018 Spring Split season.
 
 ```{r message=FALSE}
 library(httr)
@@ -317,12 +317,13 @@ get_league_season_summoner_avgs <- function(league_matches_player_stats) {
 nalcs_matches_player_stats <- read.csv(
   "../datasets/nalcs/nalcs_spring2018_match_player_stats.csv")
 nalcs_season_player_avgs <- get_league_season_summoner_avgs(nalcs_matches_player_stats)
-kable(nalcs_season_player_avgs[1:20, 2:10], caption = "Sample of Per Game Player Averages, NA LCS 2018 Spring Split")
+kable(nalcs_season_player_avgs[1:20, 2:10], caption = 
+        "Sample of Per Game Player Averages, NA LCS 2018 Spring Split")
 ```
 
 \pagebreak
 ## Exploratory Analysis
-For more details on the exploratory analysis of the datasets see this document: [**ExploratoryAnalysisReport.pdf**](https://github.com/ryanthtra/lol-esports-data-analysis/blob/master/lol_pros_predictor/reports/ExploratoryAnalysisReport.pdf).  Below, we'll look at the features/variables that stood out in my findings for distinguishing team roles, as well as plots that show these distinguishing features.
+For additional details on the exploratory analysis of the datasets see this document: [**ExploratoryAnalysisReport.pdf**](https://github.com/ryanthtra/lol-esports-data-analysis/blob/master/lol_pros_predictor/reports/ExploratoryAnalysisReport.pdf).  Below, we'll look at the features/variables that stood out in my findings for distinguishing team roles, as well as plots that show these distinguishing features.
 
 First, here are the variables that will be shown in the plots:
 
@@ -423,13 +424,13 @@ Here are some details and explanations of how and why the plots and data resulte
 ***assists***: We see nearly the opposite of ***kills***.  Supports followed by Junglers average the most assists in a game.  Supports typically, though lacking in damage output, provide the most protection, CC, buffs, and/or debuffs, while Junglers provide ganks for their teammates since they roam throgh most of the map.
 
 ***physical damage dealt/dealt to champions***: The champions selected by Botlane Carries are almost always ranged physical damage dealers aka marksmen.  Later in a match these Botlane Carries are capable of dealing high amounts of damage per second (dps) while typcially avoiding taking damage themselves, which make them less likely to be killed and, thus, be in fights longer to be able to deal such damage.  
-  Champions selected by Top Laners and Junglers are usually melee (close range) physical damage dealers, which make them more likely batlle on the front lines of team fights, though Junglers usually use hit-and-run tactics like assassins, while Top Laners stay in the front line in a fight and also combat enemy Top Laners on top of enemy minions during the Laning Phase, which is why they deal more Physical Damage than do Junglers.
+  Champions selected by Top Laners and Junglers are usually melee (close range) physical damage dealers, which make them more likely battle on the front lines of team fights, though Junglers usually use hit-and-run tactics like assassins, while Top Laners stay in the front line in a fight and also combat enemy Top Laners on top of enemy minions during the Laning Phase, which is why they deal more Physical Damage than do Junglers.
 
 ***magic damage dealt/dealt to champions***: The champions selected by Mid Laners are almost always inherently magic dealers or mages.  There are also some champions selected by Supports that can be played in Midlane roles in separate matches (such as Karma and Morgana), but as Supports, those champions' main jobs for those players are not to damage enemies.
 
 ***neutral minions killed***: Since all the neutral minions are only located in the jungle, it's obvious that Junglers would kill the most neutral minions, while the other roles only kill jungle monsters later in the match.
 
-***total damage taken***: While in-lane champions do combat their enemy counterparts and enemy minions during the laning phase, they also fight conservatively, because their main purpose in this phase is to accumulate gold and experience points (XP) by killing enemy minions, while their secondary purpose is to hinder their opponents' abilities of doing those things.  Junglers, on the other hand, are almost always by themselves when they are killing the jungle monsters (i.e., neutral minions), which means they are also taking damage from these monsters, which explains why Junglers usually at the top of the **totalDamageTaken** category.
+***total damage taken***: While in-lane champions do combat their enemy counterparts and enemy minions during the laning phase, they also fight conservatively, because their main purpose in this phase is to accumulate gold and experience points (XP) by killing enemy minions, while their secondary purpose is to hinder their opponents' abilities of doing those things.  Junglers, on the other hand, are almost always by themselves when they are killing the jungle monsters (i.e., neutral minions), which means they are also taking damage from these monsters, which explains why Junglers are usually at the top of the **totalDamageTaken** category.
 
 ***total heal***: There are two primary reasons why Junglers have the highest total heal.  1. They almost always pick the summoner spell Smite, which is used to deal a large chunk of damage to monsters while also healing the caster of the spell.  2. Only champions who have Smite are capable of purchasing items (e.g., Hunter's Machete, Hunter's Talisman, Skirmisher's Sabre, and Stalker's Blade) that provide a significant amount of life steal (i.e., healing the attacker while dealing damage) against monsters.  Therefore, those equipped with these items will always heal themselves a lot, as long as they're attacking monsters.
 
