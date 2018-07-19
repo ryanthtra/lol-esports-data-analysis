@@ -65,7 +65,7 @@ Not only are there ten different combinations of Role and Lane variables in this
 
 For instance, there are a significant number of Mid and Top Laners being assigned the ```NONE, JUNGLE``` ```role-lane``` combination.  This can be theorized in one way: Riot Games has a classification system in place that assigns players to a ```role-lane``` according to where they are located on the map at a certain point in time in a match, particularly early.   
 
-The reason I make this theory is, because, since Junglers can play a pivotal role early in a match due to their ability to roam the map and "gank" (an amalgamation of "flank", "gang", and "kill") opposing Laners, a pre-laning phase tactic called counter-jungling, or invading the enemy Jungler, is used to hinder the enemy Jungler's ganking effectiveness during the laning phase.  In this tactic, multiple teammates are often used in an attempt to ensure their team's Jungler early advantage, and therefore, when the time comes for the system to assign the ```role-lane```, those non-Jungler teammates who are still in the jungle may inadvertantly be assigned the ```NONE, JUNGLE``` ```role-lane``` combination.
+One reason to make this theory is because there are two popular tactics used before the laning phase.  One is counter-jungling (invading the enemy Jungler), and the other is leashing (providing early assistance to the Jungler teammate in killing their first jungle monster).  One or more non-Jungler teammates are optional for the former but required for the latter.  Therefore, when the time comes for the system to assign the ```role-lane```, those teammates who are still in the jungle may inadvertantly be assigned the ```NONE, JUNGLE``` ```role-lane``` combination.
 
 While the auto-classification system has shown to be flawed, at least it's safe to assume team roles for Draft Pick, Ranked, and eSports matches due to the structure cited in Figure 1, and many third-party League of Legends analytics websites, such as [op.gg](http://na.op.gg), [champion.gg](https://champion.gg), and [mobalytics.gg](https://mobalytics.gg), appear to make that assumption.  However, these sites miss out on analyzing data from Blind Pick matches, in which team role assumptions cannot be made.  If the auto-classification system can be improved upon, then both Riot Games and these third-party websites can utilize this improved system for their future analytics.
 
@@ -385,33 +385,33 @@ nalcs_plot_player_avgs_gathered <- nalcs_season_summoner_avgs_gathered %>%
   filter(wins + losses >= 6) %>%
   ggplot()
 ```
-```{r fig10, fig.width=10, fig.asp=1.78, fig.align="center", message=FALSE}
+```{r fig10, out.width="100%", fig.width=13, fig.asp=1, fig.align="center", message=FALSE}
 # Histograms
 nalcs_plot_player_avgs_gathered +
   geom_histogram(mapping = aes(x = valuePerGame, y = ..density.., fill = teamRole), 
                  color = "black", alpha = .6) +
-  facet_wrap(~varName, scales = "free", ncol = 2) +
+  facet_wrap(~varName, scales = "free", ncol = 4) +
   labs(
     title = "Player Averages Per Game Histograms, NALCS 2018 Spring Split",
     subtitle = "Distribution of Values")
 ```
-```{r fig11, fig.width=10, fig.asp=1.78, fig.align='center', message=FALSE}
+```{r fig11, out.width="100%", fig.width=13, fig.asp=1.00, fig.align='center', message=FALSE}
 nalcs_plot_player_avgs_gathered +
   geom_density(mapping = aes(x = valuePerGame, color = teamRole, fill = teamRole), 
                alpha = .3, size = 1) +
-  facet_wrap(~varName, scales = "free", ncol = 2) +
+  facet_wrap(~varName, scales = "free", ncol = 4) +
   labs(
     title = "Player Averages Per Game Density Plots, NALCS 2018 Spring Split",
     subtitle = "Distribution of Values")
 ```
-```{r fig12, out.width="100%", fig.width=12, fig.asp=2.00, fig.align='center', message=FALSE}
+```{r fig12, out.width="100%", fig.width=12, fig.asp=1.33, fig.align='center', message=FALSE}
 # Box Plots
 nalcs_plot_player_avgs_gathered +
   geom_boxplot(mapping = aes(x = teamRole, y = valuePerGame, fill = teamRole), 
                size = 1.00, alpha = .6) +
   geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = valuePerGame, color = teamRole)) +
   facet_wrap(~ varName, scales = "free", ncol = 3) +
-  theme(axis.text.x = element_text(angle=30, vjust=0.6)) +
+  theme(axis.text.x = element_text(angle=10, vjust=0.6)) +
   labs(
     title = "Player Averages per Game Box Plots, NALCS 2018 Spring Split",
     subtitle = "Distribution Across Team Roles")
