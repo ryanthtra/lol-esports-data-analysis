@@ -5,8 +5,22 @@ library(dplyr)
 # NALCS
 nalcs_season_summoner_avgs <- read.csv("datasets/nalcs/nalcs_spring2018_season_summoner_avgs.csv") %>%
   select(-X) %>%
-  filter(wins + losses >= 6) 
-
+  filter(wins + losses >= 6)
+# EULCS
+eulcs_season_summoner_avgs <- read.csv("datasets/eulcs/eulcs_spring2018_season_summoner_avgs.csv") %>%
+  select(-X) %>%
+  filter(wins + losses >= 6)
+# LCK
+lck_season_summoner_avgs <- read.csv("datasets/lck/lck_spring2018_season_summoner_avgs.csv") %>%
+  select(-X) %>%
+  filter(wins + losses >= 6)
+# LMS
+lms_season_summoner_avgs <- read.csv("datasets/lms/lms_spring2018_season_summoner_avgs.csv") %>%
+  select(-X) %>%
+  filter(wins + losses >= 6)
+# MSI
+msi_season_summoner_avgs <- read.csv("datasets/msi/msi_018_season_summoner_avgs.csv") %>%
+  select(-X) 
 
 # Remove columns 1:6, 8, 10, 30:33, 41, 44:56
 nalcs_km_data <- nalcs_season_summoner_avgs %>%
