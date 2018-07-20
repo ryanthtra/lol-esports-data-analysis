@@ -2,94 +2,123 @@ library("cluster")
 library("rattle.data")
 library(dplyr)
 
-# NALCS
-nalcs_season_summoner_avgs <- read.csv("datasets/nalcs/nalcs_spring2018_season_summoner_avgs.csv") %>%
-  select(-X) %>%
-  filter(wins + losses >= 6)
-# EULCS
-eulcs_season_summoner_avgs <- read.csv("datasets/eulcs/eulcs_spring2018_season_summoner_avgs.csv") %>%
-  select(-X) %>%
-  filter(wins + losses >= 6)
-# LCK
-lck_season_summoner_avgs <- read.csv("datasets/lck/lck_spring2018_season_summoner_avgs.csv") %>%
-  select(-X) %>%
-  filter(wins + losses >= 6)
-# LMS
-lms_season_summoner_avgs <- read.csv("datasets/lms/lms_spring2018_season_summoner_avgs.csv") %>%
-  select(-X) %>%
-  filter(wins + losses >= 6)
-# MSI
-msi_season_summoner_avgs <- read.csv("datasets/msi/msi_018_season_summoner_avgs.csv") %>%
-  select(-X) 
+# Import averages data for all available leagues
+nalcs_season_summoner_avgs <- read.csv("datasets/nalcs/nalcs_spring2018_season_summoner_avgs.csv") %>% select(-X) 
+eulcs_season_summoner_avgs <- read.csv("datasets/eulcs/eulcs_spring2018_season_summoner_avgs.csv") %>% select(-X)
+lck_season_summoner_avgs <- read.csv("datasets/lck/lck_spring2018_season_summoner_avgs.csv") %>% select(-X)
+lms_season_summoner_avgs <- read.csv("datasets/lms/lms_spring2018_season_summoner_avgs.csv") %>% select(-X)
+msi_season_summoner_avgs <- read.csv("datasets/msi/msi_2018_season_summoner_avgs.csv") %>% select(-X) 
 
-# Remove columns 1:6, 8, 10, 30:33, 41, 44:56
-nalcs_km_data <- nalcs_season_summoner_avgs %>%
-  select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken,  neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
-  scale()
+# Putting all leagues together
+all_leagues_summoner_avgs <-
+  eulcs_season_summoner_avgs %>%
+  bind_rows(lms_season_summoner_avgs) %>%
+  bind_rows(lck_season_summoner_avgs) %>%
+  bind_rows(nalcs_season_summoner_avgs) %>%
+  #bind_rows(msi_season_summoner_avgs) %>%
+  filter(wins + losses >= 6) 
 
+remove(nalcs_season_summoner_avgs, eulcs_season_summoner_avgs, lck_season_summoner_avgs, lms_season_summoner_avgs, msi_season_summoner_avgs)
 
-wssplot <- function(data, nc = 15, seed = 1234) {
-  wss <- (nrow(data) - 1) * sum(apply(data, 2, var))
-  for (i in 2:nc) {
-    set.seed(seed)
-    wss[i] <- sum(kmeans(data, centers = i)$withinss)
-  }
+# Import match-by-match player data 
+nalcs_season_match_player_stats <- read.csv("datasets/nalcs/nalcs_spring2018_match_player_stats.csv") %>% select(-X)
+eulcs_season_match_player_stats <- read.csv("datasets/eulcs/eulcs_spring2018_match_player_stats.csv") %>% select(-X)
+lck_season_match_player_stats <- read.csv("datasets/lck/lck_spring2018_match_player_stats.csv") %>% select(-X)
+lms_season_match_player_stats <- read.csv("datasets/lms/lms_spring2018_match_player_stats.csv") %>% select(-X)
+msi_season_match_player_stats <- read.csv("datasets/msi/msi_2018_match_player_stats.csv") %>% select(-X)
 
-  plot(1:nc, wss, type = "b", xlab = "Number of Clusters", ylab = "Within groups sum of squares")
+all_leagues_match_player_stats <-
+  nalcs_season_match_player_stats %>%
+  bind_rows(eulcs_season_match_player_stats) %>%
+  bind_rows(lck_season_match_player_stats) %>%
+  bind_rows(lms_season_match_player_stats) %>%
+  bind_rows(msi_season_match_player_stats) %>%
+  mutate(roleLane = paste(role, lane, sep = ", "))
+
+remove(nalcs_season_match_player_stats, eulcs_season_match_player_stats, lck_season_match_player_stats, lms_season_match_player_stats, msi_season_match_player_stats)
+
+get_teamrole_avgs <- function(league_matches_player_stats) {
+  league_season_participants_accum <- league_matches_player_stats
+
+  # Create avg stats DF groups by lane and role
+  league_teamrole_avgs <-
+    league_season_participants_accum %>%
+    group_by(teamRole) %>%
+    summarize_at(vars(duration, kills:assists, totalDamageDealt:trueDamageDealt,
+                      totalDamageDealtToChampions:firstBloodKill,
+                      firstTowerKill:firstInhibitorAssist, 'creepsPerMinDeltas.10.20',
+                      'creepsPerMinDeltas.0.10', 'xpPerMinDeltas.10.20',
+                      'xpPerMinDeltas.0.10', 'goldPerMinDeltas.10.20',
+                      'goldPerMinDeltas.0.10', 'damageTakenPerMinDeltas.10.20',
+                      'damageTakenPerMinDeltas.0.10'), mean)
+
+  # Adding KDA Ratio column
+  league_teamrole_avgs <- league_teamrole_avgs %>%
+    mutate(KDA = (kills + assists) / deaths)
+
+  # Reordering columns
+  league_season_participants_accum <- league_season_participants_accum[
+  , c(1:5, 52, 6:51)]
+
+  return(league_teamrole_avgs)
 }
-wssplot(nalcs_km_data)
-
-
-library(NbClust)
-set.seed(1234)
-nc <- NbClust(nalcs_km_data, min.nc = 2, max.nc = 15, method = "kmeans")
-barplot(table(nc$Best.n[1,]),
-  xlab = "Number of Clusters", ylab = "Number of Criteria",
-  main = "Number of Clusters Chosen by 26 Criteria")
-
-set.seed(1234)
-nalcs_fit.km <- kmeans(nalcs_km_data, 5, iter.max = 1000)
-clusplot(nalcs_km_data, nalcs_fit.km$cluster, main = "Clusplot")
-table(nalcs_season_summoner_avgs$teamRole, nalcs_fit.km$cluster)
-
-
-# Clustering EU LCS 
-eulcs_season_summoner_avgs <- read.csv("datasets/eulcs/eulcs_spring2018_season_summoner_avgs.csv") %>%
-  select(-X) %>%
-  filter(wins + losses >= 6)
-
-eulcs_km_data <- eulcs_season_summoner_avgs %>%
+library(tidyr)
+all_leagues_teamrole_avgs <- get_teamrole_avgs(all_leagues_match_player_stats)
+all_leagues_teamrole_avgs_scaled <- all_leagues_teamrole_avgs %>%
   select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
+  # Use z-value scaling of the features.
   scale()
 
-set.seed(1234)
-eulcs_fit.km <- kmeans(eulcs_km_data, 5, iter.max = 1000)
-clusplot(eulcs_km_data, eulcs_fit.km$cluster, main = "Clusplot")
-table(eulcs_season_summoner_avgs$teamRole, eulcs_fit.km$cluster)
+# Split dataset into training and testing
+#install.packages('caret')
+library(caret)
+train_index <- caret::createDataPartition(all_leagues_summoner_avgs$teamRole, p = 0.4, list = FALSE, times = 1)
+train_avgs_data <- all_leagues_summoner_avgs[train_index,]
+test_avgs_data <- all_leagues_summoner_avgs[-train_index,]
 
-# Using knn to test EULCS data using k-means model centroids as training model
-library(FNN)
-pred_eulcs_players <- get.knnx(nalcs_fit.km$centers, eulcs_km_data, 1)$nn.index[, 1]
-library(gmodels)
-CrossTable(x = eulcs_season_summoner_avgs$teamRole,
-           y = pred_eulcs_players,
-           prop.chisq = FALSE)
-
-# Using knn to test EULCS match-by-match individual performances
-eulcs_season_match_data <- read.csv("datasets/eulcs/eulcs_spring2018_match_player_stats.csv") %>% mutate(roleLane = paste(role, lane, sep = "_"))
-eulcs_playermatch_km_data <- eulcs_season_match_data %>%
+# Remove columns 1:6, 8, 10, 30:33, 41, 44:56 (Thus, using only 17 features.)
+train_avgs_data_scaled <- train_avgs_data %>%
   select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
+  # Use z-value scaling of the features.
+  scale()
+
+# Using k-means on the training set to make centroids
+set.seed(1234)
+train_fit.km <- kmeans(train_avgs_data_scaled, 5, iter.max = 1000)
+table(train_avgs_data$teamRole, train_fit.km$cluster)
+clusplot(train_avgs_data_scaled, train_fit.km$cluster, main = "Clusplot", labels = 4)
+
+#train_avgs_data <- train_avgs_data %>% bind_cols(data.frame(train_fit.km$cluster))
+#train_avgs_data <- train_avgs_data[, c(1:4,57,5:56)]
+
+# Using knn to classify observations in the test set
+test_avgs_data_scaled <- test_avgs_data %>%
+  select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
+  # Use z-value scaling of the features.
   scale()
 library(FNN)
-pred_eulcs_matchplayers <- get.knnx(nalcs_fit.km$centers, eulcs_playermatch_km_data, 1)$nn.index[, 1]
-library(gmodels)
-CrossTable(x = eulcs_season_match_data$teamRole,
-           y = eulcs_season_match_data$roleLane,
-           prop.chisq = FALSE)
-table(eulcs_season_match_data$teamRole,
-      eulcs_season_match_data$roleLane)
-CrossTable(x = eulcs_season_match_data$teamRole,
-           y = pred_eulcs_matchplayers,
-           prop.chisq = FALSE)
-table(eulcs_season_match_data$teamRole,
-      pred_eulcs_matchplayers)
+knn_pred_test_avgs <- get.knnx(train_fit.km$centers, test_avgs_data_scaled, 1)$nn.index[, 1]
+#library(gmodels)
+#CrossTable(x = test_avgs_data$teamRole,
+           #y = knn_pred_test_avgs,
+           #prop.chisq = FALSE)
+table(test_avgs_data$teamRole, knn_pred_test_avgs)
+
+
+# Using knn to classify all match-by-match individual performances
+all_leagues_match_player_stats_scaled <- all_leagues_match_player_stats %>%
+  select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
+  # Use z-value scaling of the features.
+  scale()
+knn_pred_match_players <- get.knnx(train_fit.km$centers, all_leagues_match_player_stats_scaled, 1)$nn.index[, 1]
+table(all_leagues_match_player_stats$teamRole, knn_pred_match_players)
+
+knn_pred_match_players_2 <- get.knnx(all_leagues_teamrole_avgs_scaled, all_leagues_match_player_stats_scaled, 1)$nn.index[, 1]
+table(all_leagues_match_player_stats$teamRole, knn_pred_match_players_2)
+
+# Compare to Riot's system of assigning role-lane combos
+table_roles <- table(all_leagues_match_player_stats$roleLane, all_leagues_match_player_stats$teamRole)
+table_roles
+table(knn_pred_match_players, all_leagues_match_player_stats$teamRole)
+#kable(table_roles, caption = "NA LCS Spring Split 2018 Team Role Assignments")
+

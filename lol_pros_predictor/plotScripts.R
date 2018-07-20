@@ -667,3 +667,4 @@ all_leagues_summoner_avgs <- msi_season_summoner_avgs %>%
   bind_rows(lck_season_summoner_avgs) %>%
   bind_rows(nalcs_season_summoner_avgs) %>%
   bind_rows(eulcs_season_summoner_avgs)
+facet_box_plot_league_season_player_avgs(all_leagues_summoner_avgs, str_league_season = "All Leagues 2018 Spring", min_games = 5)

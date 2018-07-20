@@ -1,7 +1,7 @@
 ---
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
   author: "Ryan Transfiguracion"
 ---
 # LoL eSports: Clustering Team Roles Milestone Report
@@ -58,6 +58,8 @@ nalcs_season_match_data <- read.csv(
   mutate(roleLane = paste(role, lane, sep = ", "))
 table_roles <- table(nalcs_season_match_data$roleLane, nalcs_season_match_data$teamRole)
 kable(table_roles, caption = "NA LCS Spring Split 2018 Team Role Assignments")
+```
+```{r echo = FALSE}
 remove(nalcs_season_match_data)
 ```
 
