@@ -196,13 +196,13 @@ kable(knn_test_avgs_table, row.names = TRUE, caption =
         "knn: Predict Team Roles w/Per-Game Averages Test Data Set (Predicted Rows vs. Actual Columns)")
 ```
 
-The ***knn** algorithm has proven to be accurate with the per-game player averages data set.  
+The ***knn*** algorithm has proven to be accurate with the per-game player averages data set.  
 
 Finally, we will see how accurate this model is when predicting team roles for individual game performances.
 
 ## Testing the Model (Game-By-Game Player Match Statistics Test Set)
 
-Just like with the previous two steps, we scale the features of the test set by z-score and then run ***knn** through the set.
+Just like with the previous two steps, we scale the features of the test set by z-score and then run ***knn*** through the set.
 
 ```{r message=FALSE, warning=FALSE}
 all_leagues_match_player_stats_scaled <- all_leagues_match_player_stats %>%
