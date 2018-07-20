@@ -69,9 +69,19 @@ all_leagues_teamrole_avgs_scaled <- all_leagues_teamrole_avgs %>%
   # Use z-value scaling of the features.
   scale()
 
+
+##################################################################################
+##################################################################################
+#
+#  BEGIN CLUSTERING BELOW
+#
+##################################################################################
+##################################################################################
+
 # Split dataset into training and testing
 #install.packages('caret')
 library(caret)
+set.seed(1234)
 train_index <- caret::createDataPartition(all_leagues_summoner_avgs$teamRole, p = 0.4, list = FALSE, times = 1)
 train_avgs_data <- all_leagues_summoner_avgs[train_index,]
 test_avgs_data <- all_leagues_summoner_avgs[-train_index,]
@@ -85,8 +95,11 @@ train_avgs_data_scaled <- train_avgs_data %>%
 # Using k-means on the training set to make centroids
 set.seed(1234)
 train_fit.km <- kmeans(train_avgs_data_scaled, 5, iter.max = 1000)
-table(train_avgs_data$teamRole, train_fit.km$cluster)
-clusplot(train_avgs_data_scaled, train_fit.km$cluster, main = "Clusplot", labels = 4)
+km_train_table <- table(train_fit.km$cluster, train_avgs_data$teamRole)
+km_train_table <- km_train_table[c(2, 1, 3, 5, 4),]
+rownames(km_train_table) <- c("BOTCARRY", "JUNGLE", "MID", "SUPPORT", "TOP")
+km_train_table
+#clusplot(train_avgs_data_scaled, train_fit.km$cluster, main = "Clusplot", labels = 4)
 
 #train_avgs_data <- train_avgs_data %>% bind_cols(data.frame(train_fit.km$cluster))
 #train_avgs_data <- train_avgs_data[, c(1:4,57,5:56)]
@@ -97,12 +110,16 @@ test_avgs_data_scaled <- test_avgs_data %>%
   # Use z-value scaling of the features.
   scale()
 library(FNN)
+set.seed(1234)
 knn_pred_test_avgs <- get.knnx(train_fit.km$centers, test_avgs_data_scaled, 1)$nn.index[, 1]
 #library(gmodels)
 #CrossTable(x = test_avgs_data$teamRole,
            #y = knn_pred_test_avgs,
            #prop.chisq = FALSE)
-table(test_avgs_data$teamRole, knn_pred_test_avgs)
+knn_test_avgs_table <- table(knn_pred_test_avgs, test_avgs_data$teamRole)
+knn_test_avgs_table <- knn_test_avgs_table[c(2, 1, 3, 5, 4),]
+rownames(knn_test_avgs_table) <- c("BOTCARRY", "JUNGLE", "MID", "SUPPORT", "TOP")
+knn_test_avgs_table
 
 
 # Using knn to classify all match-by-match individual performances
@@ -110,11 +127,144 @@ all_leagues_match_player_stats_scaled <- all_leagues_match_player_stats %>%
   select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
   # Use z-value scaling of the features.
   scale()
-knn_pred_match_players <- get.knnx(train_fit.km$centers, all_leagues_match_player_stats_scaled, 1)$nn.index[, 1]
-table(all_leagues_match_player_stats$teamRole, knn_pred_match_players)
+set.seed(1234)
+knn_pred_test_single_games <- get.knnx(train_fit.km$centers,
+                                       all_leagues_match_player_stats_scaled,
+                                       k=1)$nn.index[, 1]
+knn_test_singles_table <- table(knn_pred_test_single_games,
+                                all_leagues_match_player_stats$teamRole)
+knn_test_singles_table <- knn_test_singles_table[c(2, 1, 3, 5, 4),]
+rownames(knn_test_singles_table) <- c("BOTCARRY", "JUNGLE", "MID", "SUPPORT", "TOP")
+knn_test_singles_table
 
-knn_pred_match_players_2 <- get.knnx(all_leagues_teamrole_avgs_scaled, all_leagues_match_player_stats_scaled, 1)$nn.index[, 1]
-table(all_leagues_match_player_stats$teamRole, knn_pred_match_players_2)
+
+
+all_leagues_match_player_stats_with_pred <- all_leagues_match_player_stats
+all_leagues_match_player_stats_with_pred["predTeamRole"] <- knn_pred_test_single_games
+all_leagues_match_player_roles_with_pred <- all_leagues_match_player_stats_with_pred[,
+  c("predTeamRole", "teamRole", "name", "win", "teamId", "roleLane", "kills", "assists",
+  "magicDamageDealt", "physicalDamageDealt", "magicDamageDealtToChampions",
+  "physicalDamageDealtToChampions", "totalHeal", "totalUnitsHealed", "damageSelfMitigated",
+  "totalDamageTaken", "neutralMinionsKilled", "timeCCingOthers", "totalTimeCrowdControlDealt",
+  "champLevel", "visionWardsBoughtInGame", "wardsPlaced", "wardsKilled")]
+# Labeling predicted team roles
+for (j in 1:nrow(all_leagues_match_player_roles_with_pred)) {
+  if (all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] == 1) {
+    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "JUNGLE"
+  } else if (all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] == 2) {
+    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "BOTCARRY"
+  } else if (all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] == 3) {
+    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "MID"
+  } else if (all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] == 4) {
+    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "TOP"
+  } else {
+    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "SUPPORT"
+  }
+}
+false_negatives_top <- all_leagues_match_player_roles_with_pred %>%
+     filter(teamRole == "TOP") %>%
+     filter(predTeamRole != "TOP")
+fn_top_table <- table(false_negatives_top$name, false_negatives_top$predTeamRole)
+fn_top_table
+
+# Analyzing model success by wins and losses
+# Wins
+all_leagues_match_player_stats_wins <- all_leagues_match_player_stats_with_pred %>% filter(win == TRUE)
+knn_test_wins_table <- table(all_leagues_match_player_stats_wins$predTeamRole,
+                             all_leagues_match_player_stats_wins$teamRole)
+knn_test_wins_table <- knn_test_wins_table[c(2, 1, 3, 5, 4),]
+rownames(knn_test_wins_table) <- c("BOTCARRY", "JUNGLE", "MID", "SUPPORT", "TOP")
+caret::confusionMatrix(knn_test_wins_table)
+
+
+# Losses
+all_leagues_match_player_stats_losses <- all_leagues_match_player_stats_with_pred %>% filter(win == FALSE)
+knn_test_losses_table <- table(all_leagues_match_player_stats_losses$predTeamRole,
+                             all_leagues_match_player_stats_losses$teamRole)
+knn_test_losses_table <- knn_test_losses_table[c(2, 1, 3, 5, 4),]
+rownames(knn_test_losses_table) <- c("BOTCARRY", "JUNGLE", "MID", "SUPPORT", "TOP")
+caret::confusionMatrix(knn_test_losses_table)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Partition by wins and losses
+all_leagues_player_wl_avgs <- get_league_season_summoner_avgs(all_leagues_match_player_stats,
+                                                              only_regseason = FALSE,
+                                                              split_winloss = TRUE) %>%
+                                                              mutate_all(funs(ifelse(is.na(.), 0, .))) %>%
+                                                              filter(n >= 10) %>% 
+                                                              ungroup()
+# Winners
+all_leagues_player_wins_avgs_featured <- all_leagues_player_wl_avgs %>%
+  filter(win == TRUE)
+facet_box_plot_league_season_player_avgs(all_leagues_player_wins_avgs_featured)
+all_leagues_player_wins_avgs_scaled <- all_leagues_player_wins_avgs_featured %>%
+  select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
+  scale()
+set.seed(1234)
+train_fit_wins.km <- kmeans(all_leagues_player_wins_avgs_scaled, 5, iter.max = 1000)
+km_train_table_wins <- table(train_fit_wins.km$cluster, all_leagues_player_wins_avgs_featured$teamRole)
+#km_train_table_wins <- km_train_table_wins[c(2, 1, 3, 5, 4),]
+#rownames(km_train_table) <- c("BOTCARRY", "JUNGLE", "MID", "SUPPORT", "TOP")
+km_train_table_wins
+
+all_leagues_match_player_wins_scaled <- all_leagues_match_player_stats %>%
+  filter(win == TRUE) %>% 
+  select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
+  # Use z-value scaling of the features.
+  scale()
+set.seed(1234)
+knn_pred_test_single_wins <- get.knnx(train_fit_wins.km$centers,
+                                       all_leagues_match_player_wins_scaled,
+                                       k = 1)$nn.index[, 1]
+knn_test_wins_table <- table(knn_pred_test_single_wins,
+                                (all_leagues_match_player_stats %>%
+                                filter(win == TRUE))$teamRole)
+knn_test_wins_table <- knn_test_wins_table[c(2, 1, 3, 5, 4),]
+rownames(knn_test_wins_table) <- c("BOTCARRY", "JUNGLE", "MID", "SUPPORT", "TOP")
+knn_test_wins_table
+
+
+# Losers
+all_leagues_player_losses_avgs_featured <- all_leagues_player_wl_avgs %>%
+  filter(win == FALSE)
+facet_box_plot_league_season_player_avgs(all_leagues_player_losses_avgs_featured)
+all_leagues_player_losses_avgs_scaled <- all_leagues_player_losses_avgs_featured %>%
+  select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
+  scale()
+set.seed(1234)
+train_fit_losses.km <- kmeans(all_leagues_player_losses_avgs_scaled, 5, iter.max = 1000)
+km_train_table_losses <- table(train_fit_losses.km$cluster, all_leagues_player_losses_avgs_featured$teamRole)
+#km_train_table_losses <- km_train_table_losses[c(2, 1, 3, 5, 4),]
+#rownames(km_train_table_losses) <- c("BOTCARRY", "JUNGLE", "MID", "SUPPORT", "TOP")
+km_train_table_losses
+
+all_leagues_match_player_losses_scaled <- all_leagues_match_player_stats %>%
+  filter(win == FALSE) %>%
+  select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
+  # Use z-value scaling of the features.
+  scale()
+set.seed(1234)
+knn_pred_test_single_losses <- get.knnx(train_fit_losses.km$centers,
+                                       all_leagues_match_player_losses_scaled,
+                                       k = 1)$nn.index[, 1]
+knn_test_losses_table <- table(knn_pred_test_single_losses,
+                                (all_leagues_match_player_stats %>%
+                                filter(win == FALSE))$teamRole)
+knn_test_losses_table <- knn_test_losses_table[c(2, 1, 3, 5, 4),]
+rownames(knn_test_losses_table) <- c("BOTCARRY", "JUNGLE", "MID", "SUPPORT", "TOP")
+knn_test_losses_table
 
 # Compare to Riot's system of assigning role-lane combos
 table_roles <- table(all_leagues_match_player_stats$roleLane, all_leagues_match_player_stats$teamRole)
@@ -122,3 +272,21 @@ table_roles
 table(knn_pred_match_players, all_leagues_match_player_stats$teamRole)
 #kable(table_roles, caption = "NA LCS Spring Split 2018 Team Role Assignments")
 
+
+facet_box_plot_league_season_player_avgs <- function(league_season_player_avgs,
+                                                 str_league_season = "2018 Spring Split",
+                                                 min_games = 3) {
+  league_season_player_avgs <- league_season_player_avgs %>%
+    filter(n >= min_games)
+  league_season_player_avgs_gathered <- league_season_player_avgs %>%
+  gather(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled, key = "varName", value = "valuePerGame")
+
+  league_season_player_avgs_gathered %>% ggplot() +
+    geom_boxplot(mapping = aes(x = teamRole, y = valuePerGame, fill = teamRole), size = 1.25, alpha = .6) +
+    geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = valuePerGame, color = teamRole)) +
+    facet_wrap(~varName, scales = "free", ncol = 3) +
+    theme(axis.text.x = element_text(angle = 10, vjust = 0.6)) +
+    labs(
+  title = paste("Player Averages per Game Box Plots", str_league_season, sep = ", "),
+      subtitle = "Distribution Across Team Roles")
+}

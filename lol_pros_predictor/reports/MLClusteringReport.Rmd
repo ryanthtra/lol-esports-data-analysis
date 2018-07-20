@@ -1,0 +1,275 @@
+---
+title: "Machine Learning Clustering Report"
+author: "Ryan Transfiguracion"
+date: "July 19, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Machine Learning the Data
+
+Now that we have analyzed the data sets and confirmed that the five team roles have distinguishing characteristics, we can start running some machine learning algorithms to classify the individual observations into these team roles.
+
+These are the 17 variables/features that we'll be using for our machine learning approach.  
+
+```{r echo = FALSE, results = "asis"}
+library(knitr)
+variableName <- c("kills", "assists", "magicDamageDealt", "physicalDamageDealt", 
+                  "magicDamageDealtToChampions", "physicalDamageDealtToChampions", 
+                  "totalHeal", "totalUnitsHealed", "damageSelfMitigated", "totalDamageTaken",  
+                  "neutralMinionsKilled", "timeCCingOthers", "totalTimeCrowdControlDealt", 
+                  "champLevel", "visionWardsBoughtInGame", "wardsPlaced", "wardsKilled")
+description <- c("The number of enemy champions killed.", 
+"The number of enemy champions assisted in killing.", 
+"The amount of magic damage dealt.", 
+"The amount of physical damage dealt.", 
+"The amount of magic damage dealt to enemy champions only.",
+"The amount of physical damage dealt to enemy champions only.", 
+"The amount of health points the player has regained.", 
+"The number of entities a player healed.", 
+"The amount of health points that were not lost from damage.", 
+"The amount of damage a player took from various sources.", 
+"The number of neutral monsters killed by a player.", 
+"The weighted sum of all CC applied", 
+"The sum of all CC applied", 
+"The (experience) level of a player at the end of a match.", 
+"The number of wards (i.e. surveillance items) a player purchased.", 
+"The number of wards a player placed in the arena.", 
+"The number of enemy wards  a player destroyed.")
+df_vars <- data.frame(variableName, description)
+kable(df_vars)
+```
+
+#### Approach overview
+In attempting to improve the team role auto-assignment system implemented by Riot Games, I will use two classification algorithms in these steps:
+
+1. ***k-means*** will be used on a training set to create a training model out of the resulting centroids of the clusters.
+
+For our training set, I will use the per-game season averages of each player in each of the 2018 Spring Split leagues we have available (NA LCS, EU LCS, LCK, and LMS).  I will concatenate the four data sets together, split the new data set by 40/60 according to (assumed) team role, and use the 40% split as the training set.
+
+2. ***k nearest neighbor*** (with ```k = 1```) will be used on test sets to classify individual observations to the centroids of the training model created from Step 1.
+
+For our test sets, the first set will be the 60% split of the per-game player season averages set, and then the second set will be the game-by-game player performance data of the four leagues plus the 2018 Mid-Season Invitational.
+
+Note that the second test set is the one most directly connected to solving the problem: predicting a player's team role at the conclusion of a match.
+
+#### How will success be evaluated?
+We will evaluate success by placing the predicted results in a confusion matrix and calculating some characteristics of the matrix.  Specifically, we will be using the ```confusionMatrix()``` function from the ```caret``` library.
+
+Now, let's get on with the machine learning!
+
+## Prepping the Data
+First, we will put all the per-game player averages data sets together.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(dplyr)
+# Import averages data for all available leagues
+nalcs_season_summoner_avgs <- read.csv("../datasets/nalcs/nalcs_spring2018_season_summoner_avgs.csv") %>% 
+  select(-X) 
+eulcs_season_summoner_avgs <- read.csv("../datasets/eulcs/eulcs_spring2018_season_summoner_avgs.csv") %>% 
+  select(-X)
+lck_season_summoner_avgs <- read.csv("../datasets/lck/lck_spring2018_season_summoner_avgs.csv") %>% 
+  select(-X)
+lms_season_summoner_avgs <- read.csv("../datasets/lms/lms_spring2018_season_summoner_avgs.csv") %>% 
+  select(-X)
+```
+```{r message=FALSE, warning=FALSE}
+# Putting all leagues together
+all_leagues_summoner_avgs <-
+  eulcs_season_summoner_avgs %>%
+  bind_rows(lms_season_summoner_avgs) %>%
+  bind_rows(lck_season_summoner_avgs) %>%
+  bind_rows(nalcs_season_summoner_avgs) %>%
+  # Removing players who haven't played at least six games.
+  filter(wins + losses >= 6) 
+str(all_leagues_summoner_avgs %>% select(1:10))
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+remove(nalcs_season_summoner_avgs, eulcs_season_summoner_avgs, lck_season_summoner_avgs, lms_season_summoner_avgs)
+```
+
+We will also put the match-by-match players data sets together.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+nalcs_season_match_player_stats <- read.csv("../datasets/nalcs/nalcs_spring2018_match_player_stats.csv") %>% select(-X)
+eulcs_season_match_player_stats <- read.csv("../datasets/eulcs/eulcs_spring2018_match_player_stats.csv") %>% select(-X)
+lck_season_match_player_stats <- read.csv("../datasets/lck/lck_spring2018_match_player_stats.csv") %>% select(-X)
+lms_season_match_player_stats <- read.csv("../datasets/lms/lms_spring2018_match_player_stats.csv") %>% select(-X)
+msi_season_match_player_stats <- read.csv("../datasets/msi/msi_2018_match_player_stats.csv") %>% select(-X)
+```
+```{r message=FALSE, warning=FALSE}
+all_leagues_match_player_stats <-
+  nalcs_season_match_player_stats %>%
+  bind_rows(eulcs_season_match_player_stats) %>%
+  bind_rows(lck_season_match_player_stats) %>%
+  bind_rows(lms_season_match_player_stats) %>%
+  bind_rows(msi_season_match_player_stats) %>%
+  mutate(roleLane = paste(role, lane, sep = ", "))
+str(all_leagues_match_player_stats %>% select(1:10))
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+remove(nalcs_season_match_player_stats, eulcs_season_match_player_stats, lck_season_match_player_stats, lms_season_match_player_stats, msi_season_match_player_stats)
+```
+
+Now, we will split the "averages" data set into training and testing sets.  As stated before, 40% of the set will be used for training, while 60% will be used for testing.
+```{r message=FALSE, warning=FALSE}
+# Split dataset into training and testing
+library(caret)
+set.seed(1234)
+train_index <- caret::createDataPartition(all_leagues_summoner_avgs$teamRole, p = 0.4, list = FALSE, times = 1)
+train_avgs_data <- all_leagues_summoner_avgs[train_index,]
+test_avgs_data <- all_leagues_summoner_avgs[-train_index,]
+str(train_avgs_data %>% select(1))
+str(test_avgs_data %>% select(1))
+```
+
+With all the data that we need prepared, we can start the training phase.
+
+## Training a Model
+
+First, since the numeric values of the 17 features can vary dramatically amongst each other, we will scale the variables of the data using ***z-score***.  Thus, the values represent how many standard deviations away they are from the mean, where a value of zero represents the mean.
+
+```{r message=FALSE, warning=FALSE}
+train_avgs_data_scaled <- train_avgs_data %>%
+  select(kills, assists, magicDamageDealt, physicalDamageDealt, 
+         magicDamageDealtToChampions, physicalDamageDealtToChampions, 
+         totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, 
+         neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, 
+         champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
+  # Use z-value scaling of the features.
+  scale()
+```
+
+
+Now, we will run the ***k-means*** algorithm through this training set to create our training model.
+```{r message=FALSE, warning=FALSE}
+library("cluster")
+# Using k-means on the training set to make centroids
+set.seed(1234)
+train_fit.km <- kmeans(train_avgs_data_scaled, 5, iter.max = 1000)
+```
+
+\pagebreak
+Let's see how accurate the ***k-means*** algorithm was in creating the training model.
+```{r message=FALSE, warning=FALSE}
+km_train_table <- table(train_fit.km$cluster, train_avgs_data$teamRole)
+# Re-order the table rows for aesthetic purposes
+km_train_table <- km_train_table[c(2,1,3,5,4),]
+rownames(km_train_table) <- c("BOTCARRY", "JUNGLE", "MID", "SUPPORT", "TOP")
+kable(km_train_table, row.names = TRUE, caption = 
+        "k-means: Creating Training Model (Predicted Rows vs. Actual Columns)")
+```
+
+We see that in this run, the training model is 100% accurate.  Every observation in the training set was clustered into the correct team role.
+
+Now, we will use the centroids created from the ***k-means*** algorthm as the model for running the ***knn*** algorithm through the testing set.
+
+## Testing the Model (Per Game Player Averages Test Set)
+
+Just like with the training set, we will scale our selected features using z-score scaling.  We will then use the scaled set to run the ***knn*** algorithm through its observations.  Each observation will select the nearest centroid from the training model as the cluster that it belongs to.
+
+```{r message=FALSE, warning=FALSE}
+# Using knn to classify observations in the test set
+test_avgs_data_scaled <- test_avgs_data %>%
+  select(kills, assists, magicDamageDealt, physicalDamageDealt, 
+         magicDamageDealtToChampions, physicalDamageDealtToChampions, 
+         totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, 
+         neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, 
+         champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
+  # Use z-score scaling of the features.
+  scale()
+library(FNN)
+set.seed(1234)
+knn_pred_test_avgs <- get.knnx(train_fit.km$centers, test_avgs_data_scaled, 1)$nn.index[, 1]
+```
+\pagebreak
+As with the training phase, we will look at a table of the results to see how accurate the model was.
+
+```{r message=FALSE, warning=FALSE}
+knn_test_avgs_table <- table(knn_pred_test_avgs, test_avgs_data$teamRole)
+knn_test_avgs_table <- knn_test_avgs_table[c(2,1,3,5,4),]
+rownames(knn_test_avgs_table) <- c("BOTCARRY", "JUNGLE", "MID", "SUPPORT", "TOP")
+kable(knn_test_avgs_table, row.names = TRUE, caption = 
+        "knn: Predict Team Roles w/Per-Game Averages Test Data Set (Predicted Rows vs. Actual Columns)")
+```
+
+The ***knn** algorithm has proven to be accurate with the per-game player averages data set.  
+
+Finally, we will see how accurate this model is when predicting team roles for individual game performances.
+
+## Testing the Model (Game-By-Game Player Match Statistics Test Set)
+
+Just like with the previous two steps, we scale the features of the test set by z-score and then run ***knn** through the set.
+
+```{r message=FALSE, warning=FALSE}
+all_leagues_match_player_stats_scaled <- all_leagues_match_player_stats %>%
+  select(kills, assists, magicDamageDealt, physicalDamageDealt, 
+         magicDamageDealtToChampions, physicalDamageDealtToChampions, 
+         totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, 
+         neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, 
+         champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled) %>%
+  # Use z-score scaling of the features.
+  scale()
+
+set.seed(1234)
+
+knn_pred_test_single_games <- get.knnx(train_fit.km$centers, 
+                                       all_leagues_match_player_stats_scaled, 
+                                       1)$nn.index[, 1]
+
+knn_test_singles_table <- table(knn_pred_test_single_games, 
+                                all_leagues_match_player_stats$teamRole)
+knn_test_singles_table <- knn_test_singles_table[c(2,1,3,5,4),]
+rownames(knn_test_singles_table) <- c("BOTCARRY", "JUNGLE", "MID", "SUPPORT", "TOP")
+kable(knn_test_singles_table, row.names = TRUE, caption = 
+        "knn: Predict Team Roles Single Games Test Data Set (Predicted Rows vs. Actual Columns)")
+```
+
+We can see that, finally, the model is not 100% accurate, as expected.  Let's look at the confusion matrix statistics.
+
+```{r message=FALSE, warning=FALSE}
+caret::confusionMatrix(knn_test_singles_table)
+```
+A 93% **accuracy** sounds pretty good, as do the 0.917 **Kappa** value and the 20% **no-information rate** -- if one were to guess one team role for every single observation, then they'd be correct 20% of the time, which is ideal. 
+
+However, the ***Top Laner*** role suffers from a considerably lower **sensitivity** (true positive rate) compared to the other team roles because of a large number of false negatives, though its **specificity** (true negative rate) is right up there with the others.
+
+Let's take a look at the champions who are guilty of creating the **false negatives** for the ***Top Laner*** role aka, actual ***Top Laners*** who were mis-classified to another role:
+
+```{r echo=FALSE}
+all_leagues_match_player_stats_with_pred <- all_leagues_match_player_stats
+all_leagues_match_player_stats_with_pred["predTeamRole"] <- knn_pred_test_single_games
+all_leagues_match_player_roles_with_pred <- all_leagues_match_player_stats_with_pred[,
+  c("predTeamRole", "teamRole", "name", "win", "teamId", "roleLane", "kills", "assists",
+  "magicDamageDealt", "physicalDamageDealt", "magicDamageDealtToChampions",
+  "physicalDamageDealtToChampions", "totalHeal", "totalUnitsHealed", "damageSelfMitigated",
+  "totalDamageTaken", "neutralMinionsKilled", "timeCCingOthers", "totalTimeCrowdControlDealt",
+  "champLevel", "visionWardsBoughtInGame", "wardsPlaced", "wardsKilled")]
+# Labeling predicted team roles
+for (j in 1:nrow(all_leagues_match_player_roles_with_pred)) {
+  if (all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] == 1) {
+    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "JUNGLE"
+  } else if (all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] == 2) {
+    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "BOTCARRY"
+  } else if (all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] == 3) {
+    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "MID"
+  } else if (all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] == 4) {
+    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "TOP"
+  } else {
+    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "SUPPORT"
+  }
+}
+false_negatives_top <- all_leagues_match_player_roles_with_pred %>%
+     filter(teamRole == "TOP") %>%
+     filter(predTeamRole != "TOP")
+fn_top_table <- table(false_negatives_top$name, false_negatives_top$predTeamRole)
+kable(fn_top_table)
+```
+```{r include=FALSE, message=FALSE, warning=FALSE}
+riot_table_roles <- table(all_leagues_match_player_stats$roleLane, 
+                          all_leagues_match_player_stats$teamRole)
+kable(riot_table_roles)
+```

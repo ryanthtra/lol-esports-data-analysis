@@ -634,6 +634,17 @@ league_season_player_avgs_gathered %>% ggplot() +
       subtitle = "Distribution of Values")
 }
 
+
+#' facet_box_plot_league_season_player_avgs
+#'
+#' @param league_season_player_avgs
+#' @param str_league_season
+#' @param min_games
+#'
+#' @return
+#' @export
+#'
+#' @examples
 facet_box_plot_league_season_player_avgs <- function(league_season_player_avgs,
                                                  str_league_season = "2018 Spring Split",
                                                  min_games = 6) {
