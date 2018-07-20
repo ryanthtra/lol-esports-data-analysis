@@ -167,6 +167,12 @@ false_negatives_top <- all_leagues_match_player_roles_with_pred %>%
 fn_top_table <- table(false_negatives_top$name, false_negatives_top$predTeamRole)
 fn_top_table
 
+false_negatives_mid <- all_leagues_match_player_roles_with_pred %>%
+     filter(teamRole == "MID") %>%
+     filter(predTeamRole != "MID")
+fn_mid_table <- table(false_negatives_mid$name, false_negatives_mid$predTeamRole)
+fn_mid_table
+
 # Analyzing model success by wins and losses
 # Wins
 all_leagues_match_player_stats_wins <- all_leagues_match_player_stats_with_pred %>% filter(win == TRUE)
