@@ -1,5 +1,5 @@
 ---
-title: "Machine Learning Clustering Report"
+title: "League of Legends eSports: Machine Learning Clustering Report"
 author: "Ryan Transfiguracion"
 date: "July 19, 2018"
 output: pdf_document
@@ -237,39 +237,141 @@ A 93% **accuracy** sounds pretty good, as do the 0.917 **Kappa** value and the 2
 
 However, the ***Top Laner*** role suffers from a considerably lower **sensitivity** (true positive rate) compared to the other team roles because of a large number of false negatives, though its **specificity** (true negative rate) is right up there with the others.
 
-Let's take a look at the champions who are guilty of creating the **false negatives** for the ***Top Laner*** role aka, actual ***Top Laners*** who were mis-classified to another role:
+We will add a couple more features to the model to see if we can get it even more accurate while also increasing the **sensitivity** of the ***Top Laner*** role.  Here are the added features:
 
-```{r echo=FALSE}
+```{r echo=FALSE, results='asis'}
+library(knitr)
+newVarName <- c("physDmgToChampsToDmgTakenRatio", "totalMinionsKilled", 
+                  "damageTakenPerMinDeltas.0.10", "creepsPerMinDeltas.0.10")
+newDescription <- c("Physical damage dealt to champions / Total damage taken", 
+"The number of enemy minions killed.", 
+"The amount of damage taken per minute from 0:00 to 10:00 minutes.", 
+"The number of enemy minions killed per minute from 0:00 to 10:00 minutes.")
+df_new_vars <- data.frame(newVarName, newDescription)
+kable(df_new_vars)
+```
+
+Now, we will evaluate the updated model with these four additional features with a new confusion matrix.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(caret)
+all_leagues_summoner_avgs <- all_leagues_summoner_avgs %>%
+  mutate("physDmgToChampsToDmgTakenRatio" = physicalDamageDealtToChampions / totalDamageTaken)
+all_leagues_match_player_stats <- all_leagues_match_player_stats %>%
+  mutate("physDmgToChampsToDmgTakenRatio" = physicalDamageDealtToChampions / totalDamageTaken)
+set.seed(1234)
+train_index <- caret::createDataPartition(all_leagues_summoner_avgs$teamRole, p = 0.4, list = FALSE, times = 1)
+train_avgs_data <- all_leagues_summoner_avgs[train_index,]
+test_avgs_data <- all_leagues_summoner_avgs[-train_index,]
+
+# Remove columns 1:6, 8, 10, 30:33, 41, 44:56 (Thus, using only 17 features.)
+train_avgs_data_scaled <- train_avgs_data %>%
+  select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions,
+         physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, 
+         totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, 
+         champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled,
+         totalMinionsKilled, damageTakenPerMinDeltas.0.10, 
+         physDmgToChampsToDmgTakenRatio, creepsPerMinDeltas.0.10) %>%
+  # Use z-value scaling of the features.
+  scale()
+
+# Using k-means on the training set to make centroids
+set.seed(1234)
+train_fit.km <- kmeans(train_avgs_data_scaled, 5, iter.max = 1000)
+
+# Using knn to classify all match-by-match individual performances
+all_leagues_match_player_stats_scaled <- all_leagues_match_player_stats %>%
+  select(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, 
+         physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, 
+         totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, 
+         champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled,
+         totalMinionsKilled, damageTakenPerMinDeltas.0.10, 
+         physDmgToChampsToDmgTakenRatio, creepsPerMinDeltas.0.10) %>%
+  # Use z-value scaling of the features.
+  scale()
+set.seed(1234)
+knn_pred_test_single_games <- get.knnx(train_fit.km$centers,
+                                       all_leagues_match_player_stats_scaled,
+                                       k=1)$nn.index[, 1]
+knn_test_singles_table <- table(knn_pred_test_single_games,
+                                all_leagues_match_player_stats$teamRole)
+knn_test_singles_table <- knn_test_singles_table[c(2, 1, 3, 4, 5),]
+rownames(knn_test_singles_table) <- c("BOTCARRY", "JUNGLE", "MID", "SUPPORT", "TOP")
+library(caret)
+confusionMatrix(knn_test_singles_table)
+```
+
+With the four features added to the model, we were able to increase its accuracy from 93.36% to 94.77%, while the Kappa value increasred from .917 to .9346.  
+
+Concerning the team roles, while the sensitivities of ***Botcarry*** and ***Mid*** decreased slightly, those of ***Jungle*** and ***Support*** increased to nearly 99%, while the ***Top Laner Role*** received a six percentage points boost.
+
+## Analyzing the Model
+
+A 94.7% accurate model looks great, but let's analyze the ***false negatives*** of the lowest-sensitivity team role, the ***Top Laner***:
+
+```{r echo=FALSE, message=FALSE, results = "asis"}
 all_leagues_match_player_stats_with_pred <- all_leagues_match_player_stats
 all_leagues_match_player_stats_with_pred["predTeamRole"] <- knn_pred_test_single_games
-all_leagues_match_player_roles_with_pred <- all_leagues_match_player_stats_with_pred[,
-  c("predTeamRole", "teamRole", "name", "win", "teamId", "roleLane", "kills", "assists",
-  "magicDamageDealt", "physicalDamageDealt", "magicDamageDealtToChampions",
-  "physicalDamageDealtToChampions", "totalHeal", "totalUnitsHealed", "damageSelfMitigated",
-  "totalDamageTaken", "neutralMinionsKilled", "timeCCingOthers", "totalTimeCrowdControlDealt",
-  "champLevel", "visionWardsBoughtInGame", "wardsPlaced", "wardsKilled")]
 # Labeling predicted team roles
-for (j in 1:nrow(all_leagues_match_player_roles_with_pred)) {
-  if (all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] == 1) {
-    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "JUNGLE"
-  } else if (all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] == 2) {
-    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "BOTCARRY"
-  } else if (all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] == 3) {
-    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "MID"
-  } else if (all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] == 4) {
-    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "TOP"
+for (j in 1:nrow(all_leagues_match_player_stats_with_pred)) {
+  if (all_leagues_match_player_stats_with_pred[j, 'predTeamRole'] == 1) {
+    all_leagues_match_player_stats_with_pred[j, 'predTeamRole'] = "JUNGLE"
+  } else if (all_leagues_match_player_stats_with_pred[j, 'predTeamRole'] == 2) {
+    all_leagues_match_player_stats_with_pred[j, 'predTeamRole'] = "BOTCARRY"
+  } else if (all_leagues_match_player_stats_with_pred[j, 'predTeamRole'] == 3) {
+    all_leagues_match_player_stats_with_pred[j, 'predTeamRole'] = "MID"
+  } else if (all_leagues_match_player_stats_with_pred[j, 'predTeamRole'] == 4) {
+    all_leagues_match_player_stats_with_pred[j, 'predTeamRole'] = "SUPPORT"
   } else {
-    all_leagues_match_player_roles_with_pred[j, 'predTeamRole'] = "SUPPORT"
+    all_leagues_match_player_stats_with_pred[j, 'predTeamRole'] = "TOP"
   }
 }
-false_negatives_top <- all_leagues_match_player_roles_with_pred %>%
-     filter(teamRole == "TOP") %>%
-     filter(predTeamRole != "TOP")
-fn_top_table <- table(false_negatives_top$name, false_negatives_top$predTeamRole)
-kable(fn_top_table)
+all_leagues_match_player_stats_with_pred <- all_leagues_match_player_stats_with_pred %>%
+  mutate("truePositive" = (as.character(teamRole) == as.character(predTeamRole)))
+fn_top_table <- all_leagues_match_player_stats_with_pred %>% 
+  filter(teamRole == "TOP") %>% filter(predTeamRole != "TOP")
+kable(table(fn_top_table$name, fn_top_table$predTeamRole), 
+      caption = "False Negative Top Laner Champions vs Predicted Role")
 ```
-```{r include=FALSE, message=FALSE, warning=FALSE}
-riot_table_roles <- table(all_leagues_match_player_stats$roleLane, 
-                          all_leagues_match_player_stats$teamRole)
-kable(riot_table_roles)
+
+As we see, the three largest ***false negative*** champions of the ***Top Laner*** role are **Vladimir**, **Swain**, and **Gangplank**.
+
+In the cases of **Swain** and **Vladimir**, both are champions who are capable of dealing high amounts of magic damage, which is a defining feature of a typical ***Mid Laner***, while also having high sustainability and survivability, which is typical of a ***Top Laner***.  It is very likely that their magic damage is the culprit for mis-classifiying these particular observations for these champions as ***Mid Laners***.
+
+Additionally, **Vladimir** has abilities that are capable of life steal, which is a defining feature (as **totalHeal**) of items almost always equipped by ***Junglers***, which would explain why four **Vladimir** observations were mis-classified as ***Junglers***.
+
+Finally, for **Gangplank**, while he's not an inherently durable champion, he has a set of abilities that give him high survivability that is important for the ***Top Laner*** role.  However, he's also capable of being one of the highest physical damage-dealing champions, which is more typical of a ***Botlane Carry*** role.
+
+Furthermore, **Gangplank** deals such an atypically high amount of damage for a ***Top Laner*** that he was considered **overpowering** (OP), and he was banned from **half of all games** in our data sets, as displayed below.  Note that **Swain** and **Vladimir** are also in the Top 25 of most-banned champions, at around 20% each.
+
+```{r results='asis', message=FALSE, warning=FALSE}
+all_leagues_champ_bans <- 
+  read.csv("../datasets/nalcs/nalcs_spring2018_champ_bans.csv") %>% 
+  bind_rows(read.csv("../datasets/eulcs/eulcs_spring2018_champ_bans.csv")) %>% 
+  bind_rows(read.csv("../datasets/lck/lck_spring2018_champ_bans.csv")) %>% 
+  bind_rows(read.csv("../datasets/lms/lms_spring2018_champ_bans.csv")) %>% 
+  bind_rows(read.csv("../datasets/msi/msi_2018_champ_bans.csv"))
+champ_bans_ranked <- all_leagues_champ_bans %>% 
+  group_by(name) %>% tally(sort = TRUE) %>% rename(bans = n) %>% 
+  mutate(banRate = round(bans / (nrow(all_leagues_champ_bans) / 10), digits = 3))
+champ_bans_ranked$rank <- 1:nrow(champ_bans_ranked)
+champ_bans_ranked <- champ_bans_ranked[, c(4, 1:3)] %>% 
+  top_n(25)
+kable(champ_bans_ranked, caption = "Top 25 Most-Banned Champions, Spring 2018 Season + MSI")
 ```
+
+\pagebreak
+## Conclusion
+
+While exploring, analyzing, and visualizing the players' match data of four professional eSports leagues and an international tournament, we were able to discover distinguishable features of the five team roles (Top, Jungle, Mid, Bot Carry, and Support) when we calculated the per-game averages of individual players.  
+
+Based on this discovery, we first split the per-game averages per-player dataset into a 40/60 train/test pair.  Then, we ran the **k-means clustering** algorithm through the training set, which showed 100 percent accuracy in classifying each per-game averages observation to one of five team roles.  We then used the centroids computed by the k-means algorithm as the ***model*** for running the **k-nearest-neighbor (knn) clustering** algorithm through the per-game averages testing/validating set, which also showed 100 percent accuracy.  Finally, we used the same **k-means model** to run the **knn algorithm** through the ***real*** test set, which contained single-game performance data of individual players.  The **knn** run through the single-game performance data set showed that the model was **94.7 percent accurate** and achieved a **Kappa score of 0.9346**.
+
+To conclude, the **k-means centroids model** proved to be very accurate in classifying individual game performances of the Spring 2018 Season to an appropriate team role via the **knn algorithm**.  While not absolutely perfect, this model (and model-making process) could be an excellent tool for classifying team roles in Normal/Blind Pick Summoner's Rift game modes, where team roles cannot be assumed based on Participant ID alone.  However, we must also consider caveats such as these:
+
+***Metas Change:*** Riot Games routinely makes changes to League of Legends -- sometimes minor but sometimes paradigm-shifting.  What may be a winning strategy in the present could be a losing one in the future, and that occasionally includes changing certain champions' team roles.
+
+***Normal/Blind Pick Game Mode is Lower-Stakes:*** Because the competitiveness of this game mode can often times be less intense, players are more likely to experiment, which includes playing champions in atypical team roles.
+
+***Unique Champions:*** As mentioned before, some champions can play and succeed in a team role but may output performance data that is fitting of a different role.  Swain and Vladimir are powerful Top Laners but are also mages.  Gangplank is a dominant Top Laner with a damage output comparable to a Botlane Carry.  Ivern is a Jungler but almost never equips jungler items and plays more like a Support.
+
+***Pros are Pros:*** The level of competition in a professional LoL eSports league is considerable step up from the Regular Joes playing the game.  Even within the LoL game itself, the ranking system divides players in multiple tiers, where the "worst" players are in the Bronze division, while professionals (playing in their free time) and near-professionals are usually in the Master or Challenger divisions.  Thus, the average output data of team roles may vary considerably from division to division. 
