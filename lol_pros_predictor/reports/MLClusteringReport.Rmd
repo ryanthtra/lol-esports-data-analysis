@@ -1,8 +1,10 @@
 ---
-title: "League of Legends eSports: Machine Learning Clustering Report"
+title: 'League of Legends eSports: Machine Learning Clustering Report'
 author: "Ryan Transfiguracion"
 date: "July 19, 2018"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -372,6 +374,6 @@ To conclude, the **k-means centroids model** proved to be very accurate in class
 
 ***Normal/Blind Pick Game Mode is Lower-Stakes:*** Because the competitiveness of this game mode can often times be less intense, players are more likely to experiment, which includes playing champions in atypical team roles.
 
-***Unique Champions:*** As mentioned before, some champions can play and succeed in a team role but may output performance data that is fitting of a different role.  Swain and Vladimir are powerful Top Laners but are also mages.  Gangplank is a dominant Top Laner with a damage output comparable to a Botlane Carry.  Ivern is a Jungler but almost never equips jungler items and plays more like a Support.
+***Unique Champions:*** As mentioned before, some champions can play and succeed in a team role but may output performance data that is fitting of a different role.  Swain and Vladimir are powerful Top Laners but are also mages.  Gangplank is a dominant Top Laner with a damage output comparable to that of a Botlane Carry.  Ivern is a Jungler but almost never equips jungler items and plays more like a Support.
 
-***Pros are Pros:*** The level of competition in a professional LoL eSports league is considerable step up from the Regular Joes playing the game.  Even within the LoL game itself, the ranking system divides players in multiple tiers, where the "worst" players are in the Bronze division, while professionals (playing in their free time) and near-professionals are usually in the Master or Challenger divisions.  Thus, the average output data of team roles may vary considerably from division to division. 
+***Pros are Pros:*** The level of competition in a professional LoL eSports league is a considerable step up from the Regular Joes playing the game.  Even within the LoL game itself, the ranking system divides players in multiple tiers, where the "worst" players are in the Bronze division, while professionals (playing in their free time) and near-professionals are usually in the Master or Challenger divisions.  Thus, the average output data of team roles may vary considerably from division to division. 
