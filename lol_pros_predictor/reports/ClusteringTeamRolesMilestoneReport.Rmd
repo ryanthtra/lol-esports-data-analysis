@@ -1,12 +1,12 @@
 ---
+title: 'League of Legends eSports: Clustering Team Roles Milestone Report'
+author: "Ryan Transfiguracion"
+date: "July 19, 2018"
 output:
-  html_document: default
   pdf_document: default
-  author: "Ryan Transfiguracion"
+  html_document:
+    df_print: paged
 ---
-# LoL eSports: Clustering Team Roles Milestone Report
-#### by Ryan Transfiguracion
-
 ## Introduction
 
 To all types of players who play League of Legends (LoL), and to those who watch professionals compete at the game throughout various eSports leagues around the world, it's easy to visually identify the five roles of each competing team in a match.  
