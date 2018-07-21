@@ -467,3 +467,12 @@ nalcs_most_playbanned_champs <- get_league_most_playbanned_champs(nalcs_most_ban
 eulcs_regseason_summoner_avgs_df <- get_league_season_summoner_avgs(eulcs_matches_player_stats)
 # Getting entire season summoner avgs
 eulcs_season_summoner_avgs <- get_league_season_summoner_avgs(eulcs_matches_player_stats, only_regseason = FALSE)
+
+
+# Getting entire season summoner avgs of lck, lms, msi
+lck_matches_player_stats <- read.csv("datasets/lck/lck_spring2018_match_player_stats.csv")
+lck_season_summoner_avgs <- get_league_season_summoner_avgs(lck_matches_player_stats, only_regseason = FALSE)
+lms_matches_player_stats <- read.csv("datasets/lms/lms_spring2018_match_player_stats.csv")
+lms_season_summoner_avgs <- get_league_season_summoner_avgs(lms_matches_player_stats, only_regseason = FALSE)
+msi_matches_player_stats <- read.csv("datasets/msi/msi_2018_match_player_stats.csv")
+msi_season_summoner_avgs <- get_league_season_summoner_avgs(msi_matches_player_stats, only_regseason = FALSE)

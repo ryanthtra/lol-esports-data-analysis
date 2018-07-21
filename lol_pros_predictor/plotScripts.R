@@ -597,3 +597,85 @@ nalcs_plot_player_avgs +
   labs(
     title = "Player Averages Per Game Density Plots, NALCS 2018 Spring Split",
     subtitle = "Distribution of Values")
+
+
+
+facet_histogram_plot_league_season_player_avgs <- function(league_season_player_avgs,
+                                                 str_league_season = "2018 Spring Split",
+                                                 min_games = 6) {
+  league_season_player_avgs <- league_season_player_avgs %>%
+    select(-X) %>%
+    filter(wins + losses >= min_games)
+  league_season_player_avgs_gathered <- league_season_player_avgs %>%
+  gather(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled, key = "varName", value = "valuePerGame")
+
+  league_season_player_avgs_gathered %>% ggplot() +
+    geom_histogram(mapping = aes(x = valuePerGame, y = ..density.., fill = teamRole), color = "black", alpha = .6) +
+    facet_wrap(~varName, scales = "free", ncol = 2) +
+    labs(
+      title = paste("Player Averages Per Game Histograms", str_league_season, sep = ", "),
+      subtitle = "Distribution of Values")
+}
+
+facet_density_plot_league_season_player_avgs <- function(league_season_player_avgs,
+                                                 str_league_season = "2018 Spring Split",
+                                                 min_games = 6) {
+  league_season_player_avgs <- league_season_player_avgs %>%
+    select(-X) %>%
+    filter(wins + losses >= min_games)
+  league_season_player_avgs_gathered <- league_season_player_avgs %>%
+  gather(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled, key = "varName", value = "valuePerGame")
+
+league_season_player_avgs_gathered %>% ggplot() +
+    geom_density(mapping = aes(x = valuePerGame, color = teamRole, fill = teamRole), alpha = .3, size = 1) +
+    facet_wrap(~varName, scales = "free", ncol = 2) +
+    labs(
+      title = paste("Player Averages Per Game Density Plots", str_league_season, sep = ", "),
+      subtitle = "Distribution of Values")
+}
+
+
+#' facet_box_plot_league_season_player_avgs
+#'
+#' @param league_season_player_avgs
+#' @param str_league_season
+#' @param min_games
+#'
+#' @return
+#' @export
+#'
+#' @examples
+facet_box_plot_league_season_player_avgs <- function(league_season_player_avgs,
+                                                 str_league_season = "2018 Spring Split",
+                                                 min_games = 6) {
+  league_season_player_avgs <- league_season_player_avgs %>%
+    select(-X) %>%
+    filter(wins + losses >= min_games)
+  league_season_player_avgs_gathered <- league_season_player_avgs %>%
+  gather(kills, assists, magicDamageDealt, physicalDamageDealt, magicDamageDealtToChampions, physicalDamageDealtToChampions, totalHeal, totalUnitsHealed, damageSelfMitigated, totalDamageTaken, neutralMinionsKilled, timeCCingOthers, totalTimeCrowdControlDealt, champLevel, visionWardsBoughtInGame, wardsPlaced, wardsKilled, key = "varName", value = "valuePerGame")
+
+  league_season_player_avgs_gathered %>% ggplot() +
+    geom_boxplot(mapping = aes(x = teamRole, y = valuePerGame, fill = teamRole), size = 1.25, alpha = .6) +
+    geom_jitter(width = 0.15, mapping = aes(x = teamRole, y = valuePerGame, color = teamRole)) +
+    facet_wrap(~varName, scales = "free", ncol = 3) +
+    theme(axis.text.x = element_text(angle = 10, vjust = 0.6)) +
+    labs(
+  title = paste("Player Averages per Game Box Plots", str_league_season, sep = ", "),
+      subtitle = "Distribution Across Team Roles")
+}
+
+msi_season_summoner_avgs <- read.csv("datasets/msi/msi_2018_season_summoner_avgs.csv")
+facet_box_plot_league_season_player_avgs(msi_season_summoner_avgs, str_league_season = "MSI 2018")
+lms_season_summoner_avgs <- read.csv("datasets/lms/lms_spring2018_season_summoner_avgs.csv")
+facet_box_plot_league_season_player_avgs(lms_season_summoner_avgs, str_league_season = "LMS 2018 Spring Split", min_games = 5)
+lck_season_summoner_avgs <- read.csv("datasets/lck/lck_spring2018_season_summoner_avgs.csv")
+facet_box_plot_league_season_player_avgs(lck_season_summoner_avgs, str_league_season = "LCK 2018 Spring Split", min_games = 5)
+nalcs_season_summoner_avgs <- read.csv("datasets/nalcs/nalcs_spring2018_season_summoner_avgs.csv")
+eulcs_season_summoner_avgs <- read.csv("datasets/eulcs/eulcs_spring2018_season_summoner_avgs.csv")
+
+all_leagues_summoner_avgs <- msi_season_summoner_avgs %>%
+  bind_rows(lms_season_summoner_avgs) %>%
+  bind_rows(lck_season_summoner_avgs) %>%
+  bind_rows(nalcs_season_summoner_avgs) %>%
+  bind_rows(eulcs_season_summoner_avgs)
+facet_box_plot_league_season_player_avgs(all_leagues_summoner_avgs, str_league_season = "All Leagues 2018 Spring", min_games = 5)
